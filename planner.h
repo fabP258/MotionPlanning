@@ -41,20 +41,9 @@ class FrenetGridSearchPlanner {
             }
 
             // sample longitudinal trajectories
-            // TODO: grid should be dependent on the velocity
-            std::array<std::optional<Common::TPolynom<float, 5>>,
-                       ARC_LENGTH_GRID.size()>
-                longitudinalTrajectories;
-            // Common::FrenetState longTargetState =
-            // longBehaviour.calcTargetState(TIME_GRID[i]);
-            for (int j = 0; j < ARC_LENGTH_GRID.size(); j++) {
-                std::cout << "Sampling longitudinal trajectory s(t) with s1=";
-                std::cout << ARC_LENGTH_GRID[j];
-                std::cout << " and t1=" << TIME_GRID[i] << "\n";
-                longitudinalTrajectories[j] = longBehaviour.calcTrajectory(
-                    longState, TIME_GRID[i], ARC_LENGTH_GRID[j]);
-                // TODO: calc long only cost
-            }
+            std::vector<std::optional<Common::TPolynom<float, 5>>>
+                longitudinalTrajectories =
+                    longBehaviour.sampleTrajectories(longState, TIME_GRID[i]);
 
             // TODO: evaluate cross-wise set superposition of lat. and long.
             // trajectories

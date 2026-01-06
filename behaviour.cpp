@@ -6,7 +6,7 @@ namespace Planner {
 
 std::vector<std::optional<Common::TPolynom<float, 5>>>
 LongitudinalBehaviour::sampleTrajectories(const Common::FrenetState &startState,
-                                          const float endTime) {
+                                          const float endTime) const {
     std::vector<std::optional<Common::TPolynom<float, 5>>> trajectories;
     for (float offset : offsetGrid()) {
         trajectories.push_back(calcTrajectory(startState, endTime, offset));

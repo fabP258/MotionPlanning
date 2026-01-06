@@ -12,7 +12,7 @@ class LongitudinalBehaviour {
   public:
     std::vector<std::optional<Common::TPolynom<float, 5>>>
     sampleTrajectories(const Common::FrenetState &startState,
-                       const float endTime);
+                       const float endTime) const;
 
     std::optional<Common::TPolynom<float, 5>>
     calcTrajectory(const Common::FrenetState &startState, const float endTime,
