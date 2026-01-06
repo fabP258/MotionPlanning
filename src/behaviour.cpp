@@ -4,17 +4,17 @@
 
 namespace Planner {
 
-std::vector<std::optional<Common::TPolynom<float, 5>>>
+std::vector<std::optional<Common::PolynomialTrajectory>>
 LongitudinalBehaviour::sampleTrajectories(const Common::FrenetState &startState,
                                           const float endTime) const {
-    std::vector<std::optional<Common::TPolynom<float, 5>>> trajectories;
+    std::vector<std::optional<Common::PolynomialTrajectory>> trajectories;
     for (float offset : offsetGrid()) {
         trajectories.push_back(calcTrajectory(startState, endTime, offset));
     }
     return trajectories;
 }
 
-std::optional<Common::TPolynom<float, 5>>
+std::optional<Common::PolynomialTrajectory>
 LongitudinalBehaviour::calcTrajectory(const Common::FrenetState &startState,
                                       const float endTime, float offset) const {
     return dispatchCalculation(startState, calcTargetState(endTime, offset),
@@ -40,11 +40,12 @@ FollowingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::TPolynom<float, 5>>
+std::optional<Common::PolynomialTrajectory>
 FollowingBehaviour::dispatchCalculation(const Common::FrenetState &startState,
                                         const Common::FrenetState &endState,
                                         const float endTime) const {
-    return Common::solveBoundaryValueProblem(startState, endState, endTime);
+    return Common::PolynomialTrajectory::fromBoundaryStates(startState,
+                                                             endState, endTime);
 }
 
 float FollowingBehaviour::calcLeadVehiclePosition(const float time) const {
@@ -76,11 +77,12 @@ StoppingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::TPolynom<float, 5>>
+std::optional<Common::PolynomialTrajectory>
 StoppingBehaviour::dispatchCalculation(const Common::FrenetState &startState,
                                        const Common::FrenetState &endState,
                                        const float endTime) const {
-    return Common::solveBoundaryValueProblem(startState, endState, endTime);
+    return Common::PolynomialTrajectory::fromBoundaryStates(startState,
+                                                             endState, endTime);
 }
 
 std::span<const float> MergingBehaviour::offsetGrid() const {
@@ -117,11 +119,12 @@ MergingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::TPolynom<float, 5>>
+std::optional<Common::PolynomialTrajectory>
 MergingBehaviour::dispatchCalculation(const Common::FrenetState &startState,
                                       const Common::FrenetState &endState,
                                       const float endTime) const {
-    return Common::solveBoundaryValueProblem(startState, endState, endTime);
+    return Common::PolynomialTrajectory::fromBoundaryStates(startState,
+                                                             endState, endTime);
 }
 
 float MergingBehaviour::predictVehiclePosition(const Common::FrenetState &state,
@@ -155,12 +158,12 @@ VelocityKeepingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::TPolynom<float, 5>>
+std::optional<Common::PolynomialTrajectory>
 VelocityKeepingBehaviour::dispatchCalculation(
     const Common::FrenetState &startState, const Common::FrenetState &endState,
     const float endTime) const {
-    return Common::solveBoundaryValueProblem(startState, endState.velocity,
-                                             endState.accel, endTime);
+    return Common::PolynomialTrajectory::fromStartStateAndEndVelocity(
+        startState, endState.velocity, endState.accel, endTime);
 }
 
 } // namespace Planner

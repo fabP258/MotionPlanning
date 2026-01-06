@@ -1,24 +1,27 @@
+#include "polynomial_trajectory.h"
 #include "geometry.h"
 #include "linalg.h"
 #include <cmath>
 
 namespace Common {
 
-float Point2D::euclidiandistance(const Point2D &other) const {
-    return std::sqrt(std::pow(x - other.x, 2.0f) + std::pow(y - other.y, 2.0f));
+PolynomialTrajectory::PolynomialTrajectory(Polynom poly, FrenetState start,
+                                           FrenetState end, float time,
+                                           bool fullEndState)
+    : polynom_(poly), startState_(start), endState_(end), endTime_(time),
+      hasFullEndState_(fullEndState) {
 }
 
-std::optional<Common::TPolynom<float, 5>>
-solveBoundaryValueProblem(const FrenetState &startState,
-                          const FrenetState &endState, const float endTime) {
+std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
+    const FrenetState &startState, const FrenetState &endState, float endTime) {
     std::array<float, 6> coefs;
 
-    // from left boundary
+    // From left boundary
     coefs[0] = startState.distance;
     coefs[1] = startState.velocity;
-    coefs[2] = startState.accel;
+    coefs[2] = 0.5f * startState.accel;
 
-    // from right boundary
+    // From right boundary - solve 3x3 system
     Linalg::Matrix3x3f A;
 
     // TODO: A and therefore Ainv only depends on endTime and should be
@@ -51,21 +54,24 @@ solveBoundaryValueProblem(const FrenetState &startState,
     coefs[4] = highCoefs[1];
     coefs[5] = highCoefs[2];
 
-    return {coefs};
+    // Create polynomial and trajectory
+    Polynom poly(coefs);
+    return PolynomialTrajectory(poly, startState, endState, endTime, true);
 }
 
-std::optional<Common::TPolynom<float, 5>>
-solveBoundaryValueProblem(const FrenetState &startState,
-                          const float endVelocity, const float endAcceleration,
-                          const float endTime) {
+std::optional<PolynomialTrajectory>
+PolynomialTrajectory::fromStartStateAndEndVelocity(
+    const FrenetState &startState, float endVelocity, float endAcceleration,
+    float endTime) {
     std::array<float, 6> coefs;
     coefs[5] = 0.0f;
 
-    // left boundary
+    // Left boundary
     coefs[0] = startState.distance;
     coefs[1] = startState.velocity;
     coefs[2] = 0.5f * startState.accel;
 
+    // Solve 2x2 system for velocity and acceleration constraints
     Linalg::Matrix2x2f A;
 
     A[0][0] = 3.0f * std::pow(endTime, 2.0f);
@@ -87,32 +93,16 @@ solveBoundaryValueProblem(const FrenetState &startState,
     coefs[3] = highCoefs[0];
     coefs[4] = highCoefs[1];
 
-    return {coefs};
-}
+    // Create polynomial and trajectory
+    Polynom poly(coefs);
 
-std::vector<float>
-Path2D::calculateArcLength(const std::vector<Point2D> &points) const {
-    if (points.size() == 0) {
-        return {};
-    }
+    // Create end state for storage (position will be computed from polynomial)
+    FrenetState endState;
+    endState.distance = poly.evaluate(endTime);
+    endState.velocity = endVelocity;
+    endState.accel = endAcceleration;
 
-    std::vector<float> arcLength(points.size(), 0.0f);
-    for (int i = 1; i < points.size(); i++) {
-        arcLength[i] =
-            arcLength[i - 1] + points[i].euclidiandistance(points[i - 1]);
-    }
-
-    return arcLength;
-}
-
-void Path2D::fit(const std::vector<Point2D> &referencePoints) {
-    if (referencePoints.size() < POLYNOM_DEGREE + 1) {
-        return;
-    }
-
-    std::vector<float> arcLength = calculateArcLength(referencePoints);
-
-    // TODO: fit polynoms x(s) and y(s)
+    return PolynomialTrajectory(poly, startState, endState, endTime, false);
 }
 
 } // namespace Common

@@ -3,6 +3,7 @@
 
 #include "behaviour.h"
 #include "geometry.h"
+#include "polynomial_trajectory.h"
 #include <array>
 #include <iostream>
 #include <optional>
@@ -18,7 +19,7 @@ class FrenetGridSearchPlanner {
         for (int i = 0; i < TIME_GRID.size(); i++) {
 
             // sample lateral trajectories
-            std::array<std::optional<Common::TPolynom<float, 5>>,
+            std::array<std::optional<Common::PolynomialTrajectory>,
                        LATERAL_DISTANCE_GRID.size()>
                 lateralTrajectories;
             for (int j = 0; j < LATERAL_DISTANCE_GRID.size(); j++) {
@@ -28,12 +29,12 @@ class FrenetGridSearchPlanner {
 
                 Common::FrenetState latEndState = {LATERAL_DISTANCE_GRID[j],
                                                    0.0f, 0.0f};
-                lateralTrajectories[j] = Common::solveBoundaryValueProblem(
-                    latState, latEndState, TIME_GRID[i]);
+                lateralTrajectories[j] =
+                    Common::PolynomialTrajectory::fromBoundaryStates(
+                        latState, latEndState, TIME_GRID[i]);
                 if (lateralTrajectories[j]) {
-                    std::cout
-                        << (*lateralTrajectories[j]).evaluate(TIME_GRID[i])
-                        << "\n";
+                    std::cout << lateralTrajectories[j]->evaluate(TIME_GRID[i])
+                              << "\n";
                 } else {
                     std::cout << "INVALID\n";
                 }
@@ -41,7 +42,7 @@ class FrenetGridSearchPlanner {
             }
 
             // sample longitudinal trajectories
-            std::vector<std::optional<Common::TPolynom<float, 5>>>
+            std::vector<std::optional<Common::PolynomialTrajectory>>
                 longitudinalTrajectories =
                     longBehaviour.sampleTrajectories(longState, TIME_GRID[i]);
 

@@ -2,6 +2,7 @@
 #define BEHAVIOUR_H_INCLUDED
 
 #include "geometry.h"
+#include "polynomial_trajectory.h"
 #include <optional>
 #include <span>
 #include <vector>
@@ -10,11 +11,11 @@ namespace Planner {
 
 class LongitudinalBehaviour {
   public:
-    std::vector<std::optional<Common::TPolynom<float, 5>>>
+    std::vector<std::optional<Common::PolynomialTrajectory>>
     sampleTrajectories(const Common::FrenetState &startState,
                        const float endTime) const;
 
-    std::optional<Common::TPolynom<float, 5>>
+    std::optional<Common::PolynomialTrajectory>
     calcTrajectory(const Common::FrenetState &startState, const float endTime,
                    float offset) const;
 
@@ -26,7 +27,7 @@ class LongitudinalBehaviour {
     virtual Common::FrenetState calcTargetState(const float endTime,
                                                 const float offset) const = 0;
 
-    virtual std::optional<Common::TPolynom<float, 5>>
+    virtual std::optional<Common::PolynomialTrajectory>
     dispatchCalculation(const Common::FrenetState &startState,
                         const Common::FrenetState &endState,
                         const float endTime) const = 0;
@@ -45,7 +46,7 @@ class FollowingBehaviour : public LongitudinalBehaviour {
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::TPolynom<float, 5>>
+    std::optional<Common::PolynomialTrajectory>
     dispatchCalculation(const Common::FrenetState &startState,
                         const Common::FrenetState &endState,
                         const float endTime) const override;
@@ -74,7 +75,7 @@ class StoppingBehaviour : public LongitudinalBehaviour {
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::TPolynom<float, 5>>
+    std::optional<Common::PolynomialTrajectory>
     dispatchCalculation(const Common::FrenetState &startState,
                         const Common::FrenetState &endState,
                         const float endTime) const override;
@@ -99,7 +100,7 @@ class MergingBehaviour : public LongitudinalBehaviour {
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::TPolynom<float, 5>>
+    std::optional<Common::PolynomialTrajectory>
     dispatchCalculation(const Common::FrenetState &startState,
                         const Common::FrenetState &endState,
                         const float endTime) const override;
@@ -132,7 +133,7 @@ class VelocityKeepingBehaviour : public LongitudinalBehaviour {
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::TPolynom<float, 5>>
+    std::optional<Common::PolynomialTrajectory>
     dispatchCalculation(const Common::FrenetState &startState,
                         const Common::FrenetState &endState,
                         const float endTime) const override;
