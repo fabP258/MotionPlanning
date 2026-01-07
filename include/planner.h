@@ -5,63 +5,46 @@
 #include "geometry.h"
 #include "polynomial_trajectory.h"
 #include <array>
-#include <iostream>
 #include <optional>
 
 namespace Planner {
 
+struct FrenetTrajectory {
+    Common::PolynomialTrajectory latTrajectory;
+    Common::PolynomialTrajectory longTrajectory;
+};
+
 class FrenetGridSearchPlanner {
 
   public:
-    void run(const Common::FrenetState &latState,
-             const Common::FrenetState &longState,
-             const LongitudinalBehaviour &longBehaviour) {
-        for (int i = 0; i < TIME_GRID.size(); i++) {
+    struct CostWeights {
+        float squaredJerkIntegral = 1.0f;
+        float maneuverTime = 1.0f;
+        float squaredTargetdeviation = 1.0f;
+    };
 
-            // sample lateral trajectories
-            std::array<std::optional<Common::PolynomialTrajectory>,
-                       LATERAL_DISTANCE_GRID.size()>
-                lateralTrajectories;
-            for (int j = 0; j < LATERAL_DISTANCE_GRID.size(); j++) {
-                std::cout << "Sampling lateral trajectory d(t) with d1=";
-                std::cout << LATERAL_DISTANCE_GRID[j];
-                std::cout << " and t1=" << TIME_GRID[i] << ", d1_test=";
-
-                Common::FrenetState latEndState = {LATERAL_DISTANCE_GRID[j],
-                                                   0.0f, 0.0f};
-                lateralTrajectories[j] =
-                    Common::PolynomialTrajectory::fromBoundaryStates(
-                        latState, latEndState, TIME_GRID[i]);
-                if (lateralTrajectories[j]) {
-                    std::cout << lateralTrajectories[j]->evaluate(TIME_GRID[i])
-                              << "\n";
-                } else {
-                    std::cout << "INVALID\n";
-                }
-                // TODO: calc lat only cost
-            }
-
-            // sample longitudinal trajectories
-            std::vector<std::optional<Common::PolynomialTrajectory>>
-                longitudinalTrajectories =
-                    longBehaviour.sampleTrajectories(longState, TIME_GRID[i]);
-
-            // TODO: evaluate cross-wise set superposition of lat. and long.
-            // trajectories
-            // - feasibility checks
-            // - cost
-            // - collision check (static and dynamic)
-            // - road boundary check
-            // -> update current best trajectories and proceed with next time
-            // end time
-        }
+    FrenetGridSearchPlanner(const CostWeights &latCostWeights)
+        : latCostWeights_(latCostWeights) {
     }
 
+    void run(const Common::FrenetState &latState,
+             const Common::FrenetState &longState,
+             const LongitudinalBehaviour &longBehaviour);
+
+    void reset();
+
   private:
+    std::optional<FrenetTrajectory> previousTrajectory_;
+    CostWeights latCostWeights_;
+
+    float calculateLateralCost(const Common::PolynomialTrajectory &latTraj,
+                               const float endTime);
+
+    static constexpr float CYCLE_TIME = 0.1f;
     // TODO: calculate equidistant grids at compile-time
     static constexpr std::array<float, 11> LATERAL_DISTANCE_GRID = {
-        -0.25f, 0.2f, 0.15f, 0.1f, 0.05f, 0.0f,
-        0.05f,  0.1f, 0.15f, 0.2f, 0.25f};
+        -0.25f, -0.2f, -0.15f, -0.1f, -0.05f, 0.0f,
+        0.05f,  0.1f,  0.15f,  0.2f,  0.25f};
     static constexpr std::array<float, 11> ARC_LENGTH_GRID = {
         0.0f,  5.0f,  10.0f, 15.0f, 20.0f, 25.0f,
         30.0f, 40.0f, 45.0f, 50.0f, 55.0f};

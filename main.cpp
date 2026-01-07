@@ -2,8 +2,12 @@
 #include "planner.h"
 
 int main() {
+    Planner::FrenetGridSearchPlanner::CostWeights latCostWeights;
+    latCostWeights.squaredJerkIntegral = 1.0f;
+    latCostWeights.squaredTargetdeviation = 1.0f;
+    latCostWeights.maneuverTime = 1.0f;
 
-    Planner::FrenetGridSearchPlanner planner;
+    Planner::FrenetGridSearchPlanner planner(latCostWeights);
 
     Common::FrenetState latState;
     latState.distance = -0.12f;
