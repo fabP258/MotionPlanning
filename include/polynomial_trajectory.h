@@ -56,7 +56,7 @@ class PolynomialTrajectory {
     }
 
     float operator()(float t) const {
-        return polynom_(t);
+        return evaluate(t);
     }
 
     // Trajectory-specific queries
