@@ -1,4 +1,5 @@
 #include "polynom.h"
+#include <cmath>
 
 namespace Common {
 
@@ -70,6 +71,57 @@ Polynom Polynom::derivative(int order) const {
     }
 
     return result;
+}
+
+Polynom Polynom::square() const {
+    int newDegree = 2 * degree_;
+
+    if (newDegree > MAX_DEGREE) {
+        throw std::runtime_error(
+            "Squared polynomial exceeds maximum degree");
+    }
+
+    std::array<float, MAX_DEGREE + 1> newCoefs{};
+
+    // Multiply: (a₀ + a₁x + a₂x² + ...) × (a₀ + a₁x + a₂x² + ...)
+    // Result coefficient for x^k is sum of aᵢ*aⱼ where i+j=k
+    for (int i = 0; i <= degree_; ++i) {
+        for (int j = 0; j <= degree_; ++j) {
+            newCoefs[i + j] += coefficients_[i] * coefficients_[j];
+        }
+    }
+
+    return Polynom(newCoefs, newDegree);
+}
+
+float Polynom::integrateDefinite(float a, float b) const {
+    float result = 0.0f;
+
+    // For each term aᵢxⁱ, integral is aᵢ/(i+1) × x^(i+1)
+    // Definite integral: [aᵢ/(i+1) × b^(i+1)] - [aᵢ/(i+1) × a^(i+1)]
+    for (int i = 0; i <= degree_; ++i) {
+        float coef = coefficients_[i] / (i + 1);
+        result += coef * (std::pow(b, i + 1) - std::pow(a, i + 1));
+    }
+
+    return result;
+}
+
+Polynom Polynom::integrate() const {
+    if (degree_ >= MAX_DEGREE) {
+        throw std::runtime_error(
+            "Integrated polynomial would exceed maximum degree");
+    }
+
+    std::array<float, MAX_DEGREE + 1> newCoefs{};
+
+    // ∫ aᵢxⁱ dx = aᵢ/(i+1) × x^(i+1) + C
+    // Integration constant C is stored in newCoefs[0] (defaults to 0)
+    for (int i = 0; i <= degree_; ++i) {
+        newCoefs[i + 1] = coefficients_[i] / (i + 1);
+    }
+
+    return Polynom(newCoefs, degree_ + 1);
 }
 
 } // namespace Common

@@ -59,6 +59,15 @@ class Polynom {
 
     // Returns nth order derivative
     Polynom derivative(int order) const;
+
+    // Returns squared polynomial: p(x)² = p(x) * p(x)
+    Polynom square() const;
+
+    // Returns definite integral over [a, b]: ∫ₐᵇ p(x) dx
+    float integrateDefinite(float a, float b) const;
+
+    // Returns antiderivative polynomial (indefinite integral)
+    Polynom integrate() const;
 };
 
 } // namespace Common
