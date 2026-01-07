@@ -71,6 +71,14 @@ class PolynomialTrajectory {
     float jerk(float t) const {
         return polynom_.derivative(3).evaluate(t);
     }
+
+    // Cost function: integral of squared jerk over [0, endTime]
+    // ∫₀ᵀ j(t)² dt - measures smoothness/comfort of trajectory
+    float jerkCost() const {
+        Polynom jerk = polynom_.derivative(3);
+        Polynom jerkSquared = jerk.square();
+        return jerkSquared.integrateDefinite(0.0f, endTime_);
+    }
 };
 
 } // namespace Common
