@@ -13,10 +13,15 @@ class Polynom {
     std::array<float, MAX_DEGREE + 1> coefficients_;
     int degree_;
 
+    Polynom(const std::array<float, MAX_DEGREE + 1> &coefficients, int degree)
+        : coefficients_(coefficients), degree_(degree) {
+    }
+
   public:
     // Construct from std::array (for known degrees at compile time)
     template <std::size_t N>
-    explicit Polynom(const std::array<float, N> &coefficients) : degree_(N - 1) {
+    explicit Polynom(const std::array<float, N> &coefficients)
+        : degree_(N - 1) {
         static_assert(N <= MAX_DEGREE + 1,
                       "Polynomial degree exceeds maximum supported degree");
 

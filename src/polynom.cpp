@@ -52,23 +52,7 @@ Polynom Polynom::derivative() const {
         derivCoefs[i] = coefficients_[i + 1] * (i + 1);
     }
 
-    // Create new polynomial with degree-1 coefficients
-    // We need to construct it properly based on the actual degree
-    if (degree_ == 1) {
-        return Polynom({derivCoefs[0]});
-    } else if (degree_ == 2) {
-        return Polynom(std::array<float, 2>{derivCoefs[0], derivCoefs[1]});
-    } else if (degree_ == 3) {
-        return Polynom(std::array<float, 3>{derivCoefs[0], derivCoefs[1],
-                                             derivCoefs[2]});
-    } else if (degree_ == 4) {
-        return Polynom(std::array<float, 4>{
-            derivCoefs[0], derivCoefs[1], derivCoefs[2], derivCoefs[3]});
-    } else { // degree_ == 5
-        return Polynom(std::array<float, 5>{derivCoefs[0], derivCoefs[1],
-                                             derivCoefs[2], derivCoefs[3],
-                                             derivCoefs[4]});
-    }
+    return Polynom(derivCoefs, degree_ - 1);
 }
 
 Polynom Polynom::derivative(int order) const {
