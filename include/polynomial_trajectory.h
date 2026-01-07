@@ -18,6 +18,8 @@ class PolynomialTrajectory {
     PolynomialTrajectory(Polynom poly, FrenetState start, FrenetState end,
                          float time, bool fullEndState);
 
+    bool isInValidRange(float t) const;
+
   public:
     // Factory methods for creating trajectories
     static std::optional<PolynomialTrajectory>
@@ -58,6 +60,8 @@ class PolynomialTrajectory {
     float operator()(float t) const {
         return evaluate(t);
     }
+
+    std::optional<FrenetState> evaluateState(float t) const;
 
     // Trajectory-specific queries
     float velocity(float t) const {

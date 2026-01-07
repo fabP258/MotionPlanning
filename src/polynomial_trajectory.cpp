@@ -105,4 +105,23 @@ PolynomialTrajectory::fromStartStateAndEndVelocity(
     return PolynomialTrajectory(poly, startState, endState, endTime, false);
 }
 
+bool PolynomialTrajectory::isInValidRange(float t) const {
+    return t >= 0 && t <= endTime_;
+}
+
+std::optional<FrenetState> PolynomialTrajectory::evaluateState(float t) const {
+    if (!isInValidRange(t))
+        return std::nullopt;
+
+    Polynom velocityPolynom = polynom_.derivative();
+    Polynom accelerationPolynom = velocityPolynom.derivative();
+
+    FrenetState state;
+    state.distance = evaluate(t);
+    state.velocity = velocityPolynom.evaluate(t);
+    state.accel = accelerationPolynom.evaluate(t);
+
+    return state;
+}
+
 } // namespace Common
