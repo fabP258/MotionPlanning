@@ -136,12 +136,11 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
 
     // Collect all time points where we need to check acceleration
     // Max 4 points: 2 boundaries + 2 quadratic roots
-    std::array<float, 4> checkPoints;
-    int numPoints = 0;
+    FixedCapacityBuffer<float, 4> checkPoints;
 
     // Always check boundaries
-    checkPoints[numPoints++] = 0.0f;
-    checkPoints[numPoints++] = endTime_;
+    checkPoints.push_back(0.0f);
+    checkPoints.push_back(endTime_);
 
     // Find critical points: roots of jerk polynomial where acceleration has
     // extrema
@@ -158,7 +157,7 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
         if (std::abs(a) > 1e-9f) { // Avoid division by near-zero
             float t = -b / a;
             if (t > 0.0f && t < endTime_) {
-                checkPoints[numPoints++] = t;
+                checkPoints.push_back(t);
             }
         }
     } else if (jerk.degree() == 2) {
@@ -177,18 +176,18 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
 
             // Only consider roots within trajectory time bounds (open interval)
             if (t1 > 0.0f && t1 < endTime_) {
-                checkPoints[numPoints++] = t1;
+                checkPoints.push_back(t1);
             }
             if (t2 > 0.0f && t2 < endTime_) {
-                checkPoints[numPoints++] = t2;
+                checkPoints.push_back(t2);
             }
         }
     }
     // If jerk.degree() == 0, acceleration is linear, no interior extrema
 
     // Check if absolute acceleration at all critical points is below limit
-    for (int i = 0; i < numPoints; ++i) {
-        float accelValue = accel.evaluate(checkPoints[i]);
+    for (const auto& timePoint : checkPoints) {
+        float accelValue = accel.evaluate(timePoint);
         if (std::abs(accelValue) > maxAcceleration) {
             return false;
         }
@@ -201,26 +200,25 @@ bool PolynomialTrajectory::isMaxJerkBelowLimit(const float maxJerk) const {
     Polynom jerk = polynom_.derivative(3);
     Polynom snap = jerk.derivative();
 
-    std::array<float, 3> checkPoints;
-    int numPoints = 0;
+    FixedCapacityBuffer<float, 3> checkPoints;
 
     // Always check boundaries
-    checkPoints[numPoints++] = 0.0f;
-    checkPoints[numPoints++] = endTime_;
+    checkPoints.push_back(0.0f);
+    checkPoints.push_back(endTime_);
 
     if (snap.degree() == 1) {
         auto snapCoefs = snap.coefficients();
         if (std::abs(snapCoefs[1]) >= 1e-9f) {
             float t = -snapCoefs[0] / snapCoefs[1];
             if (t > 0 && t < endTime_) {
-                checkPoints[numPoints++] = t;
+                checkPoints.push_back(t);
             }
         }
     }
     // If snap.degree() == 0, jerk is linear, no interior extrema
 
-    for (int i = 0; i < numPoints; ++i) {
-        float jerkValue = jerk.evaluate(checkPoints[i]);
+    for (const auto& timePoint : checkPoints) {
+        float jerkValue = jerk.evaluate(timePoint);
         if (std::abs(jerkValue) > maxJerk) {
             return false;
         }

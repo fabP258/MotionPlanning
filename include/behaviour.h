@@ -1,13 +1,18 @@
 #ifndef BEHAVIOUR_H_INCLUDED
 #define BEHAVIOUR_H_INCLUDED
 
+#include "fixed_capacity_buffer.h"
 #include "geometry.h"
 #include "polynomial_trajectory.h"
 #include <optional>
-#include <span>
 #include <vector>
 
 namespace Planner {
+
+// Maximum number of offset samples for any longitudinal behavior
+// All longitudinal behaviors must ensure their offset grids do not exceed this
+// size
+static constexpr std::size_t MAX_LONGITUDINAL_OFFSET_SAMPLES = 5;
 
 struct CostWeights {
     float squaredJerkIntegral = 1.0f;
@@ -19,7 +24,8 @@ class LongitudinalBehaviour {
   public:
     enum class PlanningStrategy { FULL, VELOCITY };
 
-    virtual std::span<const float> offsetGrid() const = 0;
+    virtual Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+    offsetGrid() const = 0;
 
     virtual Common::FrenetState calcTargetState(const float endTime) const = 0;
 
@@ -37,7 +43,8 @@ class FollowingBehaviour : public LongitudinalBehaviour {
         : leadVehicleState_(lvState), minGap_(D), timeGap_(tg) {
     }
 
-    std::span<const float> offsetGrid() const override;
+    Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+    offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime) const override;
 
@@ -66,7 +73,8 @@ class StoppingBehaviour : public LongitudinalBehaviour {
     StoppingBehaviour(const float sd) : stopDistance_(sd) {
     }
 
-    std::span<const float> offsetGrid() const override;
+    Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+    offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime) const override;
 
@@ -75,7 +83,7 @@ class StoppingBehaviour : public LongitudinalBehaviour {
     CostWeights costWeights() const override;
 
   private:
-    static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {0.0f};
+    static constexpr std::array<float, 1> POSITION_OFFSET_GRID = {0.0f};
     static constexpr CostWeights costWeights_{};
     float stopDistance_;
 };
@@ -89,7 +97,8 @@ class MergingBehaviour : public LongitudinalBehaviour {
           timeGap(tg) {
     }
 
-    std::span<const float> offsetGrid() const override;
+    Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+    offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime) const override;
 
@@ -122,7 +131,8 @@ class VelocityKeepingBehaviour : public LongitudinalBehaviour {
     VelocityKeepingBehaviour(float vd) : desiredVelocity(vd) {
     }
 
-    std::span<const float> offsetGrid() const override;
+    Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+    offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime) const override;
 

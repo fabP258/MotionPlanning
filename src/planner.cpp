@@ -37,7 +37,8 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
                 sampleLateralTrajectories(latStartState, TIME_GRID[i]);
 
         // sample longitudinal trajectories
-        std::vector<std::optional<Common::PolynomialTrajectory>>
+        Common::FixedCapacityBuffer<Common::PolynomialTrajectory,
+                                    MAX_LONGITUDINAL_OFFSET_SAMPLES>
             longitudinalTrajectories = sampleLongitudinalTrajectories(
                 longStartState, longBehaviour, TIME_GRID[i]);
 
@@ -48,21 +49,18 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
                 continue;
 
             for (int k = 0; k < longitudinalTrajectories.size(); k++) {
-                if (!longitudinalTrajectories[k])
-                    continue;
-
                 // TODO: Add collision checking (static and dynamic)
                 // TODO: Add road boundary checks
 
                 float totalCost = lateralTrajectories[j]->cost() +
-                                  longitudinalTrajectories[k]->cost();
+                                  longitudinalTrajectories[k].cost();
 
                 // Update best trajectory if this combination has lower cost
                 if (totalCost < minCost) {
                     minCost = totalCost;
                     bestTrajectory =
                         FrenetTrajectory{lateralTrajectories[j].value(),
-                                         longitudinalTrajectories[k].value()};
+                                         longitudinalTrajectories[k]};
                 }
             }
         }
@@ -103,11 +101,14 @@ FrenetGridSearchPlanner::sampleLateralTrajectories(
     return trajectories;
 }
 
-std::vector<std::optional<Common::PolynomialTrajectory>>
+Common::FixedCapacityBuffer<Common::PolynomialTrajectory,
+                            MAX_LONGITUDINAL_OFFSET_SAMPLES>
 FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
     const Common::FrenetState &startState,
     const LongitudinalBehaviour &behaviour, const float endTime) const {
-    std::vector<std::optional<Common::PolynomialTrajectory>> trajectories;
+    Common::FixedCapacityBuffer<Common::PolynomialTrajectory,
+                                MAX_LONGITUDINAL_OFFSET_SAMPLES>
+        trajectories{};
     const Common::FrenetState targetState = behaviour.calcTargetState(endTime);
     for (const auto &offset : behaviour.offsetGrid()) {
         Common::FrenetState endState = targetState;
@@ -129,8 +130,8 @@ FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
         traj->setCost(calculateLongitudinalCost(traj.value(), behaviour,
                                                 targetState, endTime));
         // only add trajectory if it is within dynamic limits
-        if (traj && isTrajectoryValid(traj.value(), longLimits_)) {
-            trajectories.push_back(traj);
+        if (isTrajectoryValid(traj.value(), longLimits_)) {
+            trajectories.push_back(traj.value());
         }
     }
     return trajectories;

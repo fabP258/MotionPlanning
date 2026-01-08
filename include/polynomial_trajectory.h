@@ -1,6 +1,7 @@
 #ifndef POLYNOMIAL_TRAJECTORY_H_INCLUDED
 #define POLYNOMIAL_TRAJECTORY_H_INCLUDED
 
+#include "fixed_capacity_buffer.h"
 #include "geometry.h"
 #include "polynom.h"
 #include <optional>
@@ -22,6 +23,13 @@ class PolynomialTrajectory {
     bool isInValidRange(float t) const;
 
   public:
+    // Default constructor - creates zero trajectory
+    // Only used internally by FixedCapacityBuffer for uninitialized storage
+    PolynomialTrajectory()
+        : polynom_(), startState_{0.0f, 0.0f, 0.0f},
+          endState_{0.0f, 0.0f, 0.0f}, endTime_(0.0f), hasFullEndState_(false),
+          cost_(0.0f) {
+    }
 
     // Factory methods for creating trajectories
     static std::optional<PolynomialTrajectory>

@@ -18,6 +18,10 @@ class Polynom {
     }
 
   public:
+    // Default constructor - creates zero polynomial
+    Polynom() : coefficients_{}, degree_(0) {
+    }
+
     // Construct from std::array (for known degrees at compile time)
     template <std::size_t N>
     explicit Polynom(const std::array<float, N> &coefficients)

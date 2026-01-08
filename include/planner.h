@@ -2,6 +2,7 @@
 #define PLANNER_H_INCLUDED
 
 #include "behaviour.h"
+#include "fixed_capacity_buffer.h"
 #include "geometry.h"
 #include "polynomial_trajectory.h"
 #include <array>
@@ -74,8 +75,8 @@ class FrenetGridSearchPlanner {
     sampleLateralTrajectories(const Common::FrenetState &startState,
                               const float endTime) const;
 
-    // TODO: replace the vector with a fixed size buffer
-    std::vector<std::optional<Common::PolynomialTrajectory>>
+    Common::FixedCapacityBuffer<Common::PolynomialTrajectory,
+                                MAX_LONGITUDINAL_OFFSET_SAMPLES>
     sampleLongitudinalTrajectories(const Common::FrenetState &startState,
                                    const LongitudinalBehaviour &behaviour,
                                    const float endTime) const;

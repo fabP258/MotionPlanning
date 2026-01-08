@@ -4,7 +4,8 @@
 
 namespace Planner {
 
-std::span<const float> FollowingBehaviour::offsetGrid() const {
+Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+FollowingBehaviour::offsetGrid() const {
     return POSITION_OFFSET_GRID;
 }
 
@@ -44,7 +45,8 @@ float FollowingBehaviour::calcLeadVehicleAcceleration(const float time) const {
     return leadVehicleState_.accel;
 }
 
-std::span<const float> StoppingBehaviour::offsetGrid() const {
+Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+StoppingBehaviour::offsetGrid() const {
     return POSITION_OFFSET_GRID;
 }
 
@@ -68,7 +70,8 @@ CostWeights StoppingBehaviour::costWeights() const {
     return costWeights_;
 }
 
-std::span<const float> MergingBehaviour::offsetGrid() const {
+Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+MergingBehaviour::offsetGrid() const {
     return POSITION_OFFSET_GRID;
 }
 
@@ -125,7 +128,8 @@ float MergingBehaviour::predictVehicleAcceleration(
     return state.accel;
 }
 
-std::span<const float> VelocityKeepingBehaviour::offsetGrid() const {
+Common::FixedCapacityBuffer<float, MAX_LONGITUDINAL_OFFSET_SAMPLES>
+VelocityKeepingBehaviour::offsetGrid() const {
     return VELOCITY_OFFSET_GRID;
 }
 
