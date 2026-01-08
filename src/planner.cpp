@@ -96,7 +96,8 @@ FrenetGridSearchPlanner::sampleLateralTrajectories(
         endState.distance = LATERAL_DISTANCE_GRID[trajIdx++];
         t = Common::PolynomialTrajectory::fromBoundaryStates(startState,
                                                              endState, endTime);
-        if (t && !t->isMaxAccelerationBelowLimit(latLimits_.acceleration))
+        // invalidate trajectory if it exceeds dynamic limits
+        if (t && !isTrajectoryValid(t.value(), latLimits_))
             t.reset();
     }
 
@@ -121,8 +122,8 @@ FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
             traj = Common::PolynomialTrajectory::fromStartStateAndEndVelocity(
                 startState, endState.velocity, endState.accel, endTime);
         }
-        if (traj &&
-            traj->isMaxAccelerationBelowLimit(longLimits_.acceleration)) {
+        // only add trajectory if it is within dynamic limits
+        if (traj && isTrajectoryValid(traj.value(), longLimits_)) {
             trajectories.push_back(traj);
         }
     }
@@ -143,6 +144,13 @@ float FrenetGridSearchPlanner::calculateLateralCost(
     return latCostWeights_.squaredJerkIntegral * jerkCost +
            latCostWeights_.maneuverTime * timeCost +
            latCostWeights_.squaredTargetdeviation * deviationCost;
+}
+
+bool FrenetGridSearchPlanner::isTrajectoryValid(
+    const Common::PolynomialTrajectory &trajectory,
+    const FrenetTrajectoryLimits &limits) {
+    return trajectory.isMaxAccelerationBelowLimit(limits.acceleration) &&
+           trajectory.isMaxJerkBelowLimit(limits.jerk);
 }
 
 } // namespace Planner
