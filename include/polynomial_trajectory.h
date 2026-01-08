@@ -76,6 +76,8 @@ class PolynomialTrajectory {
         return polynom_.derivative(3).evaluate(t);
     }
 
+    bool isMaxAccelerationBelowLimit(const float maxAcceleration) const;
+
     // Cost function: integral of squared jerk over [0, endTime]
     // ∫₀ᵀ j(t)² dt - measures smoothness/comfort of trajectory
     float jerkCost() const {

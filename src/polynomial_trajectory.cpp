@@ -124,4 +124,73 @@ std::optional<FrenetState> PolynomialTrajectory::evaluateState(float t) const {
     return state;
 }
 
+bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
+    const float maxAcceleration) const {
+
+    // Get acceleration polynomial (2nd derivative)
+    Polynom accel = polynom_.derivative(2);
+
+    // Get jerk polynomial (3rd derivative) to find critical points
+    Polynom jerk = polynom_.derivative(3);
+
+    // Collect all time points where we need to check acceleration
+    // Max 4 points: 2 boundaries + 2 quadratic roots
+    std::array<float, 4> checkPoints;
+    int numPoints = 0;
+
+    // Always check boundaries
+    checkPoints[numPoints++] = 0.0f;
+    checkPoints[numPoints++] = endTime_;
+
+    // Find critical points: roots of jerk polynomial where acceleration has
+    // extrema For quintic: jerk is degree 2 (quadratic)
+    if (jerk.degree() == 2) {
+        // Quadratic: at² + bt + c = 0
+        auto jerkCoefs = jerk.coefficients();
+        float a = jerkCoefs[2]; // coefficient of t²
+        float b = jerkCoefs[1]; // coefficient of t
+        float c = jerkCoefs[0]; // constant term
+
+        float discriminant = b * b - 4 * a * c;
+
+        if (discriminant >= 0) {
+            // Real roots exist
+            float sqrtDisc = std::sqrt(discriminant);
+            float t1 = (-b + sqrtDisc) / (2 * a);
+            float t2 = (-b - sqrtDisc) / (2 * a);
+
+            // Only consider roots within trajectory time bounds (open interval)
+            if (t1 > 0.0f && t1 < endTime_) {
+                checkPoints[numPoints++] = t1;
+            }
+            if (t2 > 0.0f && t2 < endTime_) {
+                checkPoints[numPoints++] = t2;
+            }
+        }
+    } else if (jerk.degree() == 1) {
+        // Linear jerk: at + b = 0 → t = -b/a
+        auto jerkCoefs = jerk.coefficients();
+        float a = jerkCoefs[1];
+        float b = jerkCoefs[0];
+
+        if (std::abs(a) > 1e-9f) { // Avoid division by near-zero
+            float t = -b / a;
+            if (t > 0.0f && t < endTime_) {
+                checkPoints[numPoints++] = t;
+            }
+        }
+    }
+    // If jerk.degree() == 0, acceleration is linear, no interior extrema
+
+    // Check if absolute acceleration at all critical points is below limit
+    for (int i = 0; i < numPoints; ++i) {
+        float accelValue = accel.evaluate(checkPoints[i]);
+        if (std::abs(accelValue) > maxAcceleration) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 } // namespace Common
