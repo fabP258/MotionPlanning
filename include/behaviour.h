@@ -9,16 +9,23 @@
 
 namespace Planner {
 
+struct CostWeights {
+    float squaredJerkIntegral = 1.0f;
+    float maneuverTime = 1.0f;
+    float squaredTargetdeviation = 1.0f;
+};
+
 class LongitudinalBehaviour {
   public:
     enum class PlanningStrategy { FULL, VELOCITY };
 
     virtual std::span<const float> offsetGrid() const = 0;
 
-    virtual Common::FrenetState calcTargetState(const float endTime,
-                                                const float offset) const = 0;
+    virtual Common::FrenetState calcTargetState(const float endTime) const = 0;
 
     virtual PlanningStrategy planningStrategy() const = 0;
+
+    virtual CostWeights costWeights() const = 0;
 
     virtual ~LongitudinalBehaviour() = default;
 };
@@ -27,15 +34,16 @@ class FollowingBehaviour : public LongitudinalBehaviour {
   public:
     FollowingBehaviour(const Common::FrenetState &lvState, const float D,
                        const float tg)
-        : leadVehicleState(lvState), minGap(D), timeGap(tg) {
+        : leadVehicleState_(lvState), minGap_(D), timeGap_(tg) {
     }
 
     std::span<const float> offsetGrid() const override;
 
-    Common::FrenetState calcTargetState(const float endTime,
-                                        const float offset) const override;
+    Common::FrenetState calcTargetState(const float endTime) const override;
 
     PlanningStrategy planningStrategy() const override;
+
+    CostWeights costWeights() const override;
 
   private:
     float calcLeadVehiclePosition(const float time) const;
@@ -47,26 +55,29 @@ class FollowingBehaviour : public LongitudinalBehaviour {
     // TODO: use linspace()
     static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {
         -2.0f, -1.0f, 0.0f, 1.0f, 2.0f};
-    Common::FrenetState leadVehicleState;
-    float minGap;
-    float timeGap;
+    static constexpr CostWeights costWeights_{};
+    Common::FrenetState leadVehicleState_;
+    float minGap_;
+    float timeGap_;
 };
 
 class StoppingBehaviour : public LongitudinalBehaviour {
   public:
-    StoppingBehaviour(const float sd) : stopDistance(sd) {
+    StoppingBehaviour(const float sd) : stopDistance_(sd) {
     }
 
     std::span<const float> offsetGrid() const override;
 
-    Common::FrenetState calcTargetState(const float endTime,
-                                        const float offset) const override;
+    Common::FrenetState calcTargetState(const float endTime) const override;
 
     PlanningStrategy planningStrategy() const override;
 
+    CostWeights costWeights() const override;
+
   private:
     static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {0.0f};
-    float stopDistance;
+    static constexpr CostWeights costWeights_{};
+    float stopDistance_;
 };
 
 class MergingBehaviour : public LongitudinalBehaviour {
@@ -80,10 +91,11 @@ class MergingBehaviour : public LongitudinalBehaviour {
 
     std::span<const float> offsetGrid() const override;
 
-    Common::FrenetState calcTargetState(const float endTime,
-                                        const float offset) const override;
+    Common::FrenetState calcTargetState(const float endTime) const override;
 
     PlanningStrategy planningStrategy() const override;
+
+    CostWeights costWeights() const override;
 
   private:
     float predictVehiclePosition(const Common::FrenetState &state,
@@ -98,6 +110,7 @@ class MergingBehaviour : public LongitudinalBehaviour {
     // TODO: use linspace()
     static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {
         -2.0f, -1.0f, 0.0f, 1.0f, 2.0f};
+    static constexpr CostWeights costWeights_{};
     Common::FrenetState leadVehicleState;
     Common::FrenetState lagVehicleState;
     float minGap;
@@ -111,15 +124,17 @@ class VelocityKeepingBehaviour : public LongitudinalBehaviour {
 
     std::span<const float> offsetGrid() const override;
 
-    Common::FrenetState calcTargetState(const float endTime,
-                                        const float offset) const override;
+    Common::FrenetState calcTargetState(const float endTime) const override;
 
     PlanningStrategy planningStrategy() const override;
+
+    CostWeights costWeights() const override;
 
   private:
     // TODO: use linspace()
     static constexpr std::array<float, 5> VELOCITY_OFFSET_GRID = {
         -5.0f, -2.5f, 0.0f, 2.5f, 5.0f};
+    static constexpr CostWeights costWeights_{};
     float desiredVelocity;
 };
 

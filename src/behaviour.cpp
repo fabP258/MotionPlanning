@@ -9,15 +9,14 @@ std::span<const float> FollowingBehaviour::offsetGrid() const {
 }
 
 Common::FrenetState
-FollowingBehaviour::calcTargetState(const float endTime,
-                                    const float offset) const {
+FollowingBehaviour::calcTargetState(const float endTime) const {
     Common::FrenetState targetState;
 
     targetState.distance =
         calcLeadVehiclePosition(endTime) -
-        (minGap + timeGap * calcLeadVehicleVelocity(endTime)) + offset;
+        (minGap_ + timeGap_ * calcLeadVehicleVelocity(endTime));
     targetState.velocity = calcLeadVehicleVelocity(endTime) -
-                           timeGap * calcLeadVehicleAcceleration(endTime);
+                           timeGap_ * calcLeadVehicleAcceleration(endTime);
     targetState.accel = calcLeadVehicleAcceleration(endTime);
 
     return targetState;
@@ -28,17 +27,21 @@ FollowingBehaviour::planningStrategy() const {
     return PlanningStrategy::FULL;
 }
 
+CostWeights FollowingBehaviour::costWeights() const {
+    return costWeights_;
+}
+
 float FollowingBehaviour::calcLeadVehiclePosition(const float time) const {
-    return leadVehicleState.distance + leadVehicleState.velocity * time +
-           0.5f * leadVehicleState.accel * std::pow(time, 2.0f);
+    return leadVehicleState_.distance + leadVehicleState_.velocity * time +
+           0.5f * leadVehicleState_.accel * std::pow(time, 2.0f);
 }
 
 float FollowingBehaviour::calcLeadVehicleVelocity(const float time) const {
-    return leadVehicleState.velocity + leadVehicleState.accel * time;
+    return leadVehicleState_.velocity + leadVehicleState_.accel * time;
 }
 
 float FollowingBehaviour::calcLeadVehicleAcceleration(const float time) const {
-    return leadVehicleState.accel;
+    return leadVehicleState_.accel;
 }
 
 std::span<const float> StoppingBehaviour::offsetGrid() const {
@@ -46,11 +49,10 @@ std::span<const float> StoppingBehaviour::offsetGrid() const {
 }
 
 Common::FrenetState
-StoppingBehaviour::calcTargetState(const float endTime,
-                                   const float offset) const {
+StoppingBehaviour::calcTargetState(const float endTime) const {
     Common::FrenetState targetState;
 
-    targetState.distance = stopDistance + offset;
+    targetState.distance = stopDistance_;
     targetState.velocity = 0.0f;
     targetState.accel = 0.0f;
 
@@ -62,13 +64,16 @@ StoppingBehaviour::planningStrategy() const {
     return PlanningStrategy::FULL;
 }
 
+CostWeights StoppingBehaviour::costWeights() const {
+    return costWeights_;
+}
+
 std::span<const float> MergingBehaviour::offsetGrid() const {
     return POSITION_OFFSET_GRID;
 }
 
 Common::FrenetState
-MergingBehaviour::calcTargetState(const float endTime,
-                                  const float offset) const {
+MergingBehaviour::calcTargetState(const float endTime) const {
     Common::FrenetState targetState;
 
     float leadTargetDistance =
@@ -77,8 +82,7 @@ MergingBehaviour::calcTargetState(const float endTime,
     float lagTargetDistance =
         predictVehiclePosition(lagVehicleState, endTime) + minGap +
         timeGap * predictVehicleVelocity(lagVehicleState, endTime);
-    targetState.distance =
-        0.5f * (leadTargetDistance + lagTargetDistance) + offset;
+    targetState.distance = 0.5f * (leadTargetDistance + lagTargetDistance);
 
     float leadTargetVelocity =
         predictVehicleVelocity(leadVehicleState, endTime) -
@@ -99,6 +103,10 @@ MergingBehaviour::calcTargetState(const float endTime,
 LongitudinalBehaviour::PlanningStrategy
 MergingBehaviour::planningStrategy() const {
     return PlanningStrategy::FULL;
+}
+
+CostWeights MergingBehaviour::costWeights() const {
+    return costWeights_;
 }
 
 float MergingBehaviour::predictVehiclePosition(const Common::FrenetState &state,
@@ -122,11 +130,10 @@ std::span<const float> VelocityKeepingBehaviour::offsetGrid() const {
 }
 
 Common::FrenetState
-VelocityKeepingBehaviour::calcTargetState(const float endTime,
-                                          const float offset) const {
+VelocityKeepingBehaviour::calcTargetState(const float endTime) const {
     Common::FrenetState targetState;
     targetState.distance = 0.0f; // will be ignored
-    targetState.velocity = desiredVelocity + offset;
+    targetState.velocity = desiredVelocity;
     targetState.accel = 0.0f;
 
     return targetState;
@@ -135,6 +142,10 @@ VelocityKeepingBehaviour::calcTargetState(const float endTime,
 LongitudinalBehaviour::PlanningStrategy
 VelocityKeepingBehaviour::planningStrategy() const {
     return PlanningStrategy::VELOCITY;
+}
+
+CostWeights VelocityKeepingBehaviour::costWeights() const {
+    return costWeights_;
 }
 
 } // namespace Planner

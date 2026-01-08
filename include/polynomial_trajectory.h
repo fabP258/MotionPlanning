@@ -14,6 +14,7 @@ class PolynomialTrajectory {
     FrenetState endState_;
     float endTime_;
     bool hasFullEndState_;
+    float cost_;
 
     PolynomialTrajectory(Polynom poly, FrenetState start, FrenetState end,
                          float time, bool fullEndState);
@@ -21,6 +22,7 @@ class PolynomialTrajectory {
     bool isInValidRange(float t) const;
 
   public:
+
     // Factory methods for creating trajectories
     static std::optional<PolynomialTrajectory>
     fromBoundaryStates(const FrenetState &startState,
@@ -50,6 +52,14 @@ class PolynomialTrajectory {
 
     bool hasFullEndState() const {
         return hasFullEndState_;
+    }
+
+    float cost() const {
+        return cost_;
+    }
+
+    void setCost(float c) {
+        cost_ = c;
     }
 
     // Convenience evaluation (delegates to underlying polynom)

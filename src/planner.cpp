@@ -47,19 +47,15 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
             if (!lateralTrajectories[j])
                 continue;
 
-            float latCost = calculateLateralCost(lateralTrajectories[j].value(),
-                                                 TIME_GRID[i]);
-
             for (int k = 0; k < longitudinalTrajectories.size(); k++) {
                 if (!longitudinalTrajectories[k])
                     continue;
 
-                // TODO: Add longitudinal cost calculation -> stupid to do here
-                // TODO: Add feasibility checks (acceleration/jerk limits)
                 // TODO: Add collision checking (static and dynamic)
                 // TODO: Add road boundary checks
 
-                float totalCost = latCost; // + longCost when implemented
+                float totalCost = lateralTrajectories[j]->cost() +
+                                  longitudinalTrajectories[k]->cost();
 
                 // Update best trajectory if this combination has lower cost
                 if (totalCost < minCost) {
@@ -96,8 +92,11 @@ FrenetGridSearchPlanner::sampleLateralTrajectories(
         endState.distance = LATERAL_DISTANCE_GRID[trajIdx++];
         t = Common::PolynomialTrajectory::fromBoundaryStates(startState,
                                                              endState, endTime);
+        if (!t)
+            continue;
+        t->setCost(calculateLateralCost(t.value(), endTime));
         // invalidate trajectory if it exceeds dynamic limits
-        if (t && !isTrajectoryValid(t.value(), latLimits_))
+        if (!isTrajectoryValid(t.value(), latLimits_))
             t.reset();
     }
 
@@ -109,19 +108,26 @@ FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
     const Common::FrenetState &startState,
     const LongitudinalBehaviour &behaviour, const float endTime) const {
     std::vector<std::optional<Common::PolynomialTrajectory>> trajectories;
+    const Common::FrenetState targetState = behaviour.calcTargetState(endTime);
     for (const auto &offset : behaviour.offsetGrid()) {
-        Common::FrenetState endState =
-            behaviour.calcTargetState(endTime, offset);
+        Common::FrenetState endState = targetState;
         std::optional<Common::PolynomialTrajectory> traj;
         switch (behaviour.planningStrategy()) {
         case LongitudinalBehaviour::PlanningStrategy::FULL:
+            endState.distance += offset;
             traj = Common::PolynomialTrajectory::fromBoundaryStates(
                 startState, endState, endTime);
             break;
         case LongitudinalBehaviour::PlanningStrategy::VELOCITY:
+            endState.velocity += offset;
             traj = Common::PolynomialTrajectory::fromStartStateAndEndVelocity(
                 startState, endState.velocity, endState.accel, endTime);
+            break;
         }
+        if (!traj)
+            continue;
+        traj->setCost(calculateLongitudinalCost(traj.value(), behaviour,
+                                                targetState, endTime));
         // only add trajectory if it is within dynamic limits
         if (traj && isTrajectoryValid(traj.value(), longLimits_)) {
             trajectories.push_back(traj);
@@ -131,7 +137,7 @@ FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
 }
 
 float FrenetGridSearchPlanner::calculateLateralCost(
-    const Common::PolynomialTrajectory &latTraj, const float endTime) {
+    const Common::PolynomialTrajectory &latTraj, const float endTime) const {
 
     float jerkCost = latTraj.jerkCost();
     float timeCost = endTime;
@@ -144,6 +150,27 @@ float FrenetGridSearchPlanner::calculateLateralCost(
     return latCostWeights_.squaredJerkIntegral * jerkCost +
            latCostWeights_.maneuverTime * timeCost +
            latCostWeights_.squaredTargetdeviation * deviationCost;
+}
+
+float FrenetGridSearchPlanner::calculateLongitudinalCost(
+    const Common::PolynomialTrajectory &longTraj,
+    const LongitudinalBehaviour &behaviour,
+    const Common::FrenetState &targetState, const float endTime) const {
+    float jerkCost = longTraj.jerkCost();
+    float targetDeviation;
+    switch (behaviour.planningStrategy()) {
+    case LongitudinalBehaviour::PlanningStrategy::FULL:
+        targetDeviation = longTraj.endState().distance - targetState.distance;
+        break;
+    case LongitudinalBehaviour::PlanningStrategy::VELOCITY:
+        targetDeviation = longTraj.endState().velocity - targetState.velocity;
+        break;
+    }
+    float squaredTargetDeviation = targetDeviation * targetDeviation;
+    CostWeights weights = behaviour.costWeights();
+    return weights.squaredJerkIntegral * jerkCost +
+           weights.maneuverTime * endTime +
+           weights.squaredTargetdeviation * squaredTargetDeviation;
 }
 
 bool FrenetGridSearchPlanner::isTrajectoryValid(

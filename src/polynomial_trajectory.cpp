@@ -2,6 +2,7 @@
 #include "geometry.h"
 #include "linalg.h"
 #include <cmath>
+#include <limits>
 
 namespace Common {
 
@@ -9,7 +10,7 @@ PolynomialTrajectory::PolynomialTrajectory(Polynom poly, FrenetState start,
                                            FrenetState end, float time,
                                            bool fullEndState)
     : polynom_(poly), startState_(start), endState_(end), endTime_(time),
-      hasFullEndState_(fullEndState) {
+      hasFullEndState_(fullEndState), cost_(std::numeric_limits<float>::max()) {
 }
 
 std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
@@ -146,7 +147,8 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
     // extrema
     auto jerkCoefs = jerk.coefficients();
 
-    // Handle linear jerk (degree 1) or degenerate quadratic (degree 2 but a ≈ 0)
+    // Handle linear jerk (degree 1) or degenerate quadratic (degree 2 but a ≈
+    // 0)
     if (jerk.degree() == 1 ||
         (jerk.degree() == 2 && std::abs(jerkCoefs[2]) < 1e-9f)) {
         // Linear jerk: at + b = 0 → t = -b/a

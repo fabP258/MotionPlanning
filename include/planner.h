@@ -37,12 +37,6 @@ struct FrenetTrajectory {
 class FrenetGridSearchPlanner {
 
   public:
-    struct CostWeights {
-        float squaredJerkIntegral = 1.0f;
-        float maneuverTime = 1.0f;
-        float squaredTargetdeviation = 1.0f;
-    };
-
     struct FrenetTrajectoryLimits {
         float acceleration = 2.0f;
         float jerk = 5.0f;
@@ -91,7 +85,13 @@ class FrenetGridSearchPlanner {
                       const FrenetTrajectoryLimits &limits);
 
     float calculateLateralCost(const Common::PolynomialTrajectory &latTraj,
-                               const float endTime);
+                               const float endTime) const;
+
+    float
+    calculateLongitudinalCost(const Common::PolynomialTrajectory &longTraj,
+                              const LongitudinalBehaviour &behaviour,
+                              const Common::FrenetState &targetState,
+                              const float endTime) const;
 };
 
 } // namespace Planner
