@@ -72,16 +72,18 @@ class FrenetGridSearchPlanner {
     static constexpr std::array<float, 11> LATERAL_DISTANCE_GRID =
         linspace<11>(-0.25f, 0.25f);
 
-    static constexpr std::array<float, 11> ARC_LENGTH_GRID =
-        linspace<11>(0.0f, 55.0f);
-
-    static constexpr std::array<float, 5> TIME_GRID =
-        linspace<5>(1.0f, 3.0f);
+    static constexpr std::array<float, 5> TIME_GRID = linspace<5>(1.0f, 3.0f);
 
     std::array<std::optional<Common::PolynomialTrajectory>,
                LATERAL_DISTANCE_GRID.size()>
     sampleLateralTrajectories(const Common::FrenetState &startState,
                               const float endTime) const;
+
+    // TODO: replace the vector with a fixed size buffer
+    std::vector<std::optional<Common::PolynomialTrajectory>>
+    sampleLongitudinalTrajectories(const Common::FrenetState &startState,
+                                   const LongitudinalBehaviour &behaviour,
+                                   const float endTime) const;
 
     float calculateLateralCost(const Common::PolynomialTrajectory &latTraj,
                                const float endTime);

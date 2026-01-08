@@ -1,4 +1,5 @@
 #include "planner.h"
+#include "behaviour.h"
 #include "geometry.h"
 #include "polynomial_trajectory.h"
 #include <iostream>
@@ -37,8 +38,8 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
 
         // sample longitudinal trajectories
         std::vector<std::optional<Common::PolynomialTrajectory>>
-            longitudinalTrajectories =
-                longBehaviour.sampleTrajectories(longStartState, TIME_GRID[i]);
+            longitudinalTrajectories = sampleLongitudinalTrajectories(
+                longStartState, longBehaviour, TIME_GRID[i]);
 
         // Evaluate cross-wise combinations of lateral and longitudinal
         // trajectories
@@ -53,7 +54,7 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
                 if (!longitudinalTrajectories[k])
                     continue;
 
-                // TODO: Add longitudinal cost calculation
+                // TODO: Add longitudinal cost calculation -> stupid to do here
                 // TODO: Add feasibility checks (acceleration/jerk limits)
                 // TODO: Add collision checking (static and dynamic)
                 // TODO: Add road boundary checks
@@ -99,6 +100,32 @@ FrenetGridSearchPlanner::sampleLateralTrajectories(
             t.reset();
     }
 
+    return trajectories;
+}
+
+std::vector<std::optional<Common::PolynomialTrajectory>>
+FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
+    const Common::FrenetState &startState,
+    const LongitudinalBehaviour &behaviour, const float endTime) const {
+    std::vector<std::optional<Common::PolynomialTrajectory>> trajectories;
+    for (const auto &offset : behaviour.offsetGrid()) {
+        Common::FrenetState endState =
+            behaviour.calcTargetState(endTime, offset);
+        std::optional<Common::PolynomialTrajectory> traj;
+        switch (behaviour.planningStrategy()) {
+        case LongitudinalBehaviour::PlanningStrategy::FULL:
+            traj = Common::PolynomialTrajectory::fromBoundaryStates(
+                startState, endState, endTime);
+            break;
+        case LongitudinalBehaviour::PlanningStrategy::VELOCITY:
+            traj = Common::PolynomialTrajectory::fromStartStateAndEndVelocity(
+                startState, endState.velocity, endState.accel, endTime);
+        }
+        if (traj &&
+            traj->isMaxAccelerationBelowLimit(longLimits_.acceleration)) {
+            trajectories.push_back(traj);
+        }
+    }
     return trajectories;
 }
 

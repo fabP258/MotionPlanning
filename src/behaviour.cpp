@@ -4,23 +4,6 @@
 
 namespace Planner {
 
-std::vector<std::optional<Common::PolynomialTrajectory>>
-LongitudinalBehaviour::sampleTrajectories(const Common::FrenetState &startState,
-                                          const float endTime) const {
-    std::vector<std::optional<Common::PolynomialTrajectory>> trajectories;
-    for (float offset : offsetGrid()) {
-        trajectories.push_back(calcTrajectory(startState, endTime, offset));
-    }
-    return trajectories;
-}
-
-std::optional<Common::PolynomialTrajectory>
-LongitudinalBehaviour::calcTrajectory(const Common::FrenetState &startState,
-                                      const float endTime, float offset) const {
-    return dispatchCalculation(startState, calcTargetState(endTime, offset),
-                               endTime);
-}
-
 std::span<const float> FollowingBehaviour::offsetGrid() const {
     return POSITION_OFFSET_GRID;
 }
@@ -40,12 +23,9 @@ FollowingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::PolynomialTrajectory>
-FollowingBehaviour::dispatchCalculation(const Common::FrenetState &startState,
-                                        const Common::FrenetState &endState,
-                                        const float endTime) const {
-    return Common::PolynomialTrajectory::fromBoundaryStates(startState,
-                                                             endState, endTime);
+LongitudinalBehaviour::PlanningStrategy
+FollowingBehaviour::planningStrategy() const {
+    return PlanningStrategy::FULL;
 }
 
 float FollowingBehaviour::calcLeadVehiclePosition(const float time) const {
@@ -77,12 +57,9 @@ StoppingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::PolynomialTrajectory>
-StoppingBehaviour::dispatchCalculation(const Common::FrenetState &startState,
-                                       const Common::FrenetState &endState,
-                                       const float endTime) const {
-    return Common::PolynomialTrajectory::fromBoundaryStates(startState,
-                                                             endState, endTime);
+LongitudinalBehaviour::PlanningStrategy
+StoppingBehaviour::planningStrategy() const {
+    return PlanningStrategy::FULL;
 }
 
 std::span<const float> MergingBehaviour::offsetGrid() const {
@@ -119,12 +96,9 @@ MergingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::PolynomialTrajectory>
-MergingBehaviour::dispatchCalculation(const Common::FrenetState &startState,
-                                      const Common::FrenetState &endState,
-                                      const float endTime) const {
-    return Common::PolynomialTrajectory::fromBoundaryStates(startState,
-                                                             endState, endTime);
+LongitudinalBehaviour::PlanningStrategy
+MergingBehaviour::planningStrategy() const {
+    return PlanningStrategy::FULL;
 }
 
 float MergingBehaviour::predictVehiclePosition(const Common::FrenetState &state,
@@ -158,12 +132,9 @@ VelocityKeepingBehaviour::calcTargetState(const float endTime,
     return targetState;
 }
 
-std::optional<Common::PolynomialTrajectory>
-VelocityKeepingBehaviour::dispatchCalculation(
-    const Common::FrenetState &startState, const Common::FrenetState &endState,
-    const float endTime) const {
-    return Common::PolynomialTrajectory::fromStartStateAndEndVelocity(
-        startState, endState.velocity, endState.accel, endTime);
+LongitudinalBehaviour::PlanningStrategy
+VelocityKeepingBehaviour::planningStrategy() const {
+    return PlanningStrategy::VELOCITY;
 }
 
 } // namespace Planner

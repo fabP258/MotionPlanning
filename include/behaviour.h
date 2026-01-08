@@ -11,26 +11,16 @@ namespace Planner {
 
 class LongitudinalBehaviour {
   public:
-    std::vector<std::optional<Common::PolynomialTrajectory>>
-    sampleTrajectories(const Common::FrenetState &startState,
-                       const float endTime) const;
+    enum class PlanningStrategy { FULL, VELOCITY };
 
-    std::optional<Common::PolynomialTrajectory>
-    calcTrajectory(const Common::FrenetState &startState, const float endTime,
-                   float offset) const;
-
-    virtual ~LongitudinalBehaviour() = default;
-
-  private:
     virtual std::span<const float> offsetGrid() const = 0;
 
     virtual Common::FrenetState calcTargetState(const float endTime,
                                                 const float offset) const = 0;
 
-    virtual std::optional<Common::PolynomialTrajectory>
-    dispatchCalculation(const Common::FrenetState &startState,
-                        const Common::FrenetState &endState,
-                        const float endTime) const = 0;
+    virtual PlanningStrategy planningStrategy() const = 0;
+
+    virtual ~LongitudinalBehaviour() = default;
 };
 
 class FollowingBehaviour : public LongitudinalBehaviour {
@@ -40,23 +30,21 @@ class FollowingBehaviour : public LongitudinalBehaviour {
         : leadVehicleState(lvState), minGap(D), timeGap(tg) {
     }
 
-  private:
     std::span<const float> offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::PolynomialTrajectory>
-    dispatchCalculation(const Common::FrenetState &startState,
-                        const Common::FrenetState &endState,
-                        const float endTime) const override;
+    PlanningStrategy planningStrategy() const override;
 
+  private:
     float calcLeadVehiclePosition(const float time) const;
 
     float calcLeadVehicleVelocity(const float time) const;
 
     float calcLeadVehicleAcceleration(const float time) const;
 
+    // TODO: use linspace()
     static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {
         -2.0f, -1.0f, 0.0f, 1.0f, 2.0f};
     Common::FrenetState leadVehicleState;
@@ -69,16 +57,12 @@ class StoppingBehaviour : public LongitudinalBehaviour {
     StoppingBehaviour(const float sd) : stopDistance(sd) {
     }
 
-  private:
     std::span<const float> offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::PolynomialTrajectory>
-    dispatchCalculation(const Common::FrenetState &startState,
-                        const Common::FrenetState &endState,
-                        const float endTime) const override;
+    PlanningStrategy planningStrategy() const override;
 
   private:
     static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {0.0f};
@@ -94,17 +78,14 @@ class MergingBehaviour : public LongitudinalBehaviour {
           timeGap(tg) {
     }
 
-  private:
     std::span<const float> offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::PolynomialTrajectory>
-    dispatchCalculation(const Common::FrenetState &startState,
-                        const Common::FrenetState &endState,
-                        const float endTime) const override;
+    PlanningStrategy planningStrategy() const override;
 
+  private:
     float predictVehiclePosition(const Common::FrenetState &state,
                                  const float time) const;
 
@@ -114,6 +95,7 @@ class MergingBehaviour : public LongitudinalBehaviour {
     float predictVehicleAcceleration(const Common::FrenetState &state,
                                      const float time) const;
 
+    // TODO: use linspace()
     static constexpr std::array<float, 5> POSITION_OFFSET_GRID = {
         -2.0f, -1.0f, 0.0f, 1.0f, 2.0f};
     Common::FrenetState leadVehicleState;
@@ -127,17 +109,15 @@ class VelocityKeepingBehaviour : public LongitudinalBehaviour {
     VelocityKeepingBehaviour(float vd) : desiredVelocity(vd) {
     }
 
-  private:
     std::span<const float> offsetGrid() const override;
 
     Common::FrenetState calcTargetState(const float endTime,
                                         const float offset) const override;
 
-    std::optional<Common::PolynomialTrajectory>
-    dispatchCalculation(const Common::FrenetState &startState,
-                        const Common::FrenetState &endState,
-                        const float endTime) const override;
+    PlanningStrategy planningStrategy() const override;
 
+  private:
+    // TODO: use linspace()
     static constexpr std::array<float, 5> VELOCITY_OFFSET_GRID = {
         -5.0f, -2.5f, 0.0f, 2.5f, 5.0f};
     float desiredVelocity;
