@@ -7,7 +7,14 @@ int main() {
     latCostWeights.squaredTargetdeviation = 1.0f;
     latCostWeights.maneuverTime = 1.0f;
 
-    Planner::FrenetGridSearchPlanner planner(latCostWeights);
+    Planner::FrenetGridSearchPlanner::FrenetTrajectoryLimits latLimits;
+    latLimits.acceleration = 3.0f;
+
+    Planner::FrenetGridSearchPlanner::FrenetTrajectoryLimits longLimits;
+    longLimits.acceleration = 2.0f;
+
+    Planner::FrenetGridSearchPlanner planner(latCostWeights, latLimits,
+                                              longLimits);
 
     Common::FrenetState latState;
     latState.distance = -0.12f;

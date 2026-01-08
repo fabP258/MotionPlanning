@@ -9,6 +9,26 @@
 
 namespace Planner {
 
+// Compile-time generation of equidistant grid points
+// Generates N points from start to stop (inclusive)
+template <std::size_t N>
+constexpr std::array<float, N> linspace(float start, float stop) {
+    static_assert(N > 0, "Grid must have at least one point");
+
+    std::array<float, N> result{};
+
+    if constexpr (N == 1) {
+        result[0] = start;
+    } else {
+        float step = (stop - start) / (N - 1);
+        for (std::size_t i = 0; i < N; ++i) {
+            result[i] = start + i * step;
+        }
+    }
+
+    return result;
+}
+
 struct FrenetTrajectory {
     Common::PolynomialTrajectory latTrajectory;
     Common::PolynomialTrajectory longTrajectory;
@@ -47,15 +67,16 @@ class FrenetGridSearchPlanner {
     FrenetTrajectoryLimits longLimits_;
 
     static constexpr float CYCLE_TIME = 0.1f;
-    // TODO: calculate equidistant grids at compile-time
-    static constexpr std::array<float, 11> LATERAL_DISTANCE_GRID = {
-        -0.25f, -0.2f, -0.15f, -0.1f, -0.05f, 0.0f,
-        0.05f,  0.1f,  0.15f,  0.2f,  0.25f};
-    static constexpr std::array<float, 11> ARC_LENGTH_GRID = {
-        0.0f,  5.0f,  10.0f, 15.0f, 20.0f, 25.0f,
-        30.0f, 40.0f, 45.0f, 50.0f, 55.0f};
-    static constexpr std::array<float, 5> TIME_GRID = {1.0f, 1.5f, 2.0f, 2.5f,
-                                                       3.0f};
+
+    // Compile-time generated equidistant grids
+    static constexpr std::array<float, 11> LATERAL_DISTANCE_GRID =
+        linspace<11>(-0.25f, 0.25f);
+
+    static constexpr std::array<float, 11> ARC_LENGTH_GRID =
+        linspace<11>(0.0f, 55.0f);
+
+    static constexpr std::array<float, 5> TIME_GRID =
+        linspace<5>(1.0f, 3.0f);
 
     std::array<std::optional<Common::PolynomialTrajectory>,
                LATERAL_DISTANCE_GRID.size()>
