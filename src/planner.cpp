@@ -1,4 +1,6 @@
 #include "planner.h"
+#include "geometry.h"
+#include "polynomial_trajectory.h"
 #include <iostream>
 #include <limits>
 
@@ -7,7 +9,6 @@ namespace Planner {
 void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
                                   const Common::FrenetState &longState,
                                   const LongitudinalBehaviour &longBehaviour) {
-
     Common::FrenetState latStartState = latState;
     Common::FrenetState longStartState = longState;
     if (previousTrajectory_) {
@@ -28,30 +29,11 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
     std::optional<FrenetTrajectory> bestTrajectory;
 
     for (int i = 0; i < TIME_GRID.size(); i++) {
-
         // sample lateral trajectories
         std::array<std::optional<Common::PolynomialTrajectory>,
                    LATERAL_DISTANCE_GRID.size()>
-            lateralTrajectories;
-        for (int j = 0; j < LATERAL_DISTANCE_GRID.size(); j++) {
-            std::cout << "Sampling lateral trajectory d(t) with d1=";
-            std::cout << LATERAL_DISTANCE_GRID[j];
-            std::cout << " and t1=" << TIME_GRID[i] << ", d1_test=";
-
-            Common::FrenetState latEndState = {LATERAL_DISTANCE_GRID[j], 0.0f,
-                                               0.0f};
-            lateralTrajectories[j] =
-                Common::PolynomialTrajectory::fromBoundaryStates(
-                    latStartState, latEndState, TIME_GRID[i]);
-            if (lateralTrajectories[j]) {
-                std::cout << lateralTrajectories[j]->evaluate(TIME_GRID[i])
-                          << ", squared jerk cost: "
-                          << lateralTrajectories[j]->jerkCost() << "\n";
-            } else {
-                std::cout << "INVALID\n";
-            }
-            // TODO: calc lat only cost
-        }
+            lateralTrajectories =
+                sampleLateralTrajectories(latStartState, TIME_GRID[i]);
 
         // sample longitudinal trajectories
         std::vector<std::optional<Common::PolynomialTrajectory>>
@@ -65,7 +47,7 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
                 continue;
 
             float latCost = calculateLateralCost(lateralTrajectories[j].value(),
-                                                  TIME_GRID[i]);
+                                                 TIME_GRID[i]);
 
             for (int k = 0; k < longitudinalTrajectories.size(); k++) {
                 if (!longitudinalTrajectories[k])
@@ -81,22 +63,43 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
                 // Update best trajectory if this combination has lower cost
                 if (totalCost < minCost) {
                     minCost = totalCost;
-                    bestTrajectory = FrenetTrajectory{
-                        lateralTrajectories[j].value(),
-                        longitudinalTrajectories[k].value()};
+                    bestTrajectory =
+                        FrenetTrajectory{lateralTrajectories[j].value(),
+                                         longitudinalTrajectories[k].value()};
                 }
             }
         }
     }
 
-    // CRITICAL: Always update previousTrajectory_, even if no valid trajectory found
-    // If bestTrajectory is nullopt, this resets previousTrajectory_ to nullopt,
-    // forcing next cycle to use provided states instead of stale trajectory
+    // CRITICAL: Always update previousTrajectory_, even if no valid trajectory
+    // found If bestTrajectory is nullopt, this resets previousTrajectory_ to
+    // nullopt, forcing next cycle to use provided states instead of stale
+    // trajectory
     previousTrajectory_ = bestTrajectory;
 }
 
 void FrenetGridSearchPlanner::reset() {
     previousTrajectory_.reset();
+}
+
+std::array<std::optional<Common::PolynomialTrajectory>,
+           FrenetGridSearchPlanner::LATERAL_DISTANCE_GRID.size()>
+FrenetGridSearchPlanner::sampleLateralTrajectories(
+    const Common::FrenetState &startState, const float endTime) const {
+    std::array<std::optional<Common::PolynomialTrajectory>,
+               FrenetGridSearchPlanner::LATERAL_DISTANCE_GRID.size()>
+        trajectories;
+    int trajIdx = 0;
+    Common::FrenetState endState = {0.0f, 0.0f, 0.0f};
+    for (auto &t : trajectories) {
+        endState.distance = LATERAL_DISTANCE_GRID[trajIdx++];
+        t = Common::PolynomialTrajectory::fromBoundaryStates(startState,
+                                                             endState, endTime);
+        if (t && !t->isMaxAccelerationBelowLimit(latLimits_.acceleration))
+            t.reset();
+    }
+
+    return trajectories;
 }
 
 float FrenetGridSearchPlanner::calculateLateralCost(
@@ -105,7 +108,8 @@ float FrenetGridSearchPlanner::calculateLateralCost(
     float jerkCost = latTraj.jerkCost();
     float timeCost = endTime;
 
-    // Target deviation: difference between end position and target (0.0 for lane keeping)
+    // Target deviation: difference between end position and target (0.0 for
+    // lane keeping)
     float targetDeviation = latTraj.endState().distance - 0.0f;
     float deviationCost = targetDeviation * targetDeviation;
 

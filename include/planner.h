@@ -23,8 +23,15 @@ class FrenetGridSearchPlanner {
         float squaredTargetdeviation = 1.0f;
     };
 
-    FrenetGridSearchPlanner(const CostWeights &latCostWeights)
-        : latCostWeights_(latCostWeights) {
+    struct FrenetTrajectoryLimits {
+        float acceleration = 2.0f;
+    };
+
+    FrenetGridSearchPlanner(const CostWeights &latCostWeights,
+                            const FrenetTrajectoryLimits &latLimits,
+                            const FrenetTrajectoryLimits &longLimits)
+        : latCostWeights_(latCostWeights), latLimits_(latLimits),
+          longLimits_(longLimits) {
     }
 
     void run(const Common::FrenetState &latState,
@@ -36,9 +43,8 @@ class FrenetGridSearchPlanner {
   private:
     std::optional<FrenetTrajectory> previousTrajectory_;
     CostWeights latCostWeights_;
-
-    float calculateLateralCost(const Common::PolynomialTrajectory &latTraj,
-                               const float endTime);
+    FrenetTrajectoryLimits latLimits_;
+    FrenetTrajectoryLimits longLimits_;
 
     static constexpr float CYCLE_TIME = 0.1f;
     // TODO: calculate equidistant grids at compile-time
@@ -50,6 +56,14 @@ class FrenetGridSearchPlanner {
         30.0f, 40.0f, 45.0f, 50.0f, 55.0f};
     static constexpr std::array<float, 5> TIME_GRID = {1.0f, 1.5f, 2.0f, 2.5f,
                                                        3.0f};
+
+    std::array<std::optional<Common::PolynomialTrajectory>,
+               LATERAL_DISTANCE_GRID.size()>
+    sampleLateralTrajectories(const Common::FrenetState &startState,
+                              const float endTime) const;
+
+    float calculateLateralCost(const Common::PolynomialTrajectory &latTraj,
+                               const float endTime);
 };
 
 } // namespace Planner
