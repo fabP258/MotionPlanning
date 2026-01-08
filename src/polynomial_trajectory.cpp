@@ -143,10 +143,24 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
     checkPoints[numPoints++] = endTime_;
 
     // Find critical points: roots of jerk polynomial where acceleration has
-    // extrema For quintic: jerk is degree 2 (quadratic)
-    if (jerk.degree() == 2) {
+    // extrema
+    auto jerkCoefs = jerk.coefficients();
+
+    // Handle linear jerk (degree 1) or degenerate quadratic (degree 2 but a ≈ 0)
+    if (jerk.degree() == 1 ||
+        (jerk.degree() == 2 && std::abs(jerkCoefs[2]) < 1e-9f)) {
+        // Linear jerk: at + b = 0 → t = -b/a
+        float a = jerkCoefs[1]; // coefficient of t
+        float b = jerkCoefs[0]; // constant term
+
+        if (std::abs(a) > 1e-9f) { // Avoid division by near-zero
+            float t = -b / a;
+            if (t > 0.0f && t < endTime_) {
+                checkPoints[numPoints++] = t;
+            }
+        }
+    } else if (jerk.degree() == 2) {
         // Quadratic: at² + bt + c = 0
-        auto jerkCoefs = jerk.coefficients();
         float a = jerkCoefs[2]; // coefficient of t²
         float b = jerkCoefs[1]; // coefficient of t
         float c = jerkCoefs[0]; // constant term
@@ -167,18 +181,6 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
                 checkPoints[numPoints++] = t2;
             }
         }
-    } else if (jerk.degree() == 1) {
-        // Linear jerk: at + b = 0 → t = -b/a
-        auto jerkCoefs = jerk.coefficients();
-        float a = jerkCoefs[1];
-        float b = jerkCoefs[0];
-
-        if (std::abs(a) > 1e-9f) { // Avoid division by near-zero
-            float t = -b / a;
-            if (t > 0.0f && t < endTime_) {
-                checkPoints[numPoints++] = t;
-            }
-        }
     }
     // If jerk.degree() == 0, acceleration is linear, no interior extrema
 
@@ -186,6 +188,38 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
     for (int i = 0; i < numPoints; ++i) {
         float accelValue = accel.evaluate(checkPoints[i]);
         if (std::abs(accelValue) > maxAcceleration) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool PolynomialTrajectory::isMaxJerkBelowLimit(const float maxJerk) const {
+    Polynom jerk = polynom_.derivative(3);
+    Polynom snap = jerk.derivative();
+
+    std::array<float, 3> checkPoints;
+    int numPoints = 0;
+
+    // Always check boundaries
+    checkPoints[numPoints++] = 0.0f;
+    checkPoints[numPoints++] = endTime_;
+
+    if (snap.degree() == 1) {
+        auto snapCoefs = snap.coefficients();
+        if (std::abs(snapCoefs[1]) >= 1e-9f) {
+            float t = -snapCoefs[0] / snapCoefs[1];
+            if (t > 0 && t < endTime_) {
+                checkPoints[numPoints++] = t;
+            }
+        }
+    }
+    // If snap.degree() == 0, jerk is linear, no interior extrema
+
+    for (int i = 0; i < numPoints; ++i) {
+        float jerkValue = jerk.evaluate(checkPoints[i]);
+        if (std::abs(jerkValue) > maxJerk) {
             return false;
         }
     }

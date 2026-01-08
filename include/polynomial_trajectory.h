@@ -78,6 +78,8 @@ class PolynomialTrajectory {
 
     bool isMaxAccelerationBelowLimit(const float maxAcceleration) const;
 
+    bool isMaxJerkBelowLimit(const float maxJerk) const;
+
     // Cost function: integral of squared jerk over [0, endTime]
     // ∫₀ᵀ j(t)² dt - measures smoothness/comfort of trajectory
     float jerkCost() const {
