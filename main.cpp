@@ -42,8 +42,11 @@ int main() {
     Planner::RoadBoundary leftRoadBoundary;
     Planner::RoadBoundary rightRoadBoundary;
 
-    planner.run(referencePath, leftRoadBoundary, rightRoadBoundary, latState,
-                longState, longBehaviour);
+    std::optional<Planner::FrenetTrajectory> optimalTrajectory =
+        planner.run(referencePath, leftRoadBoundary, rightRoadBoundary,
+                    latState, longState, longBehaviour);
+
+    // visualize the optimal trajectory and the road boundaries
 
     return 0;
 }

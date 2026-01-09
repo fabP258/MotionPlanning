@@ -7,12 +7,11 @@
 
 namespace Planner {
 
-void FrenetGridSearchPlanner::run(const Common::Path2D &referencePath,
-                                  const RoadBoundary &leftRoadBoundary,
-                                  const RoadBoundary &rightRoadBoundary,
-                                  const Common::FrenetState &latState,
-                                  const Common::FrenetState &longState,
-                                  const LongitudinalBehaviour &longBehaviour) {
+std::optional<FrenetTrajectory> FrenetGridSearchPlanner::run(
+    const Common::Path2D &referencePath, const RoadBoundary &leftRoadBoundary,
+    const RoadBoundary &rightRoadBoundary, const Common::FrenetState &latState,
+    const Common::FrenetState &longState,
+    const LongitudinalBehaviour &longBehaviour) {
     // calculate initial state
     Common::FrenetState latStartState = latState;
     Common::FrenetState longStartState = longState;
@@ -96,6 +95,8 @@ void FrenetGridSearchPlanner::run(const Common::Path2D &referencePath,
     // nullopt, forcing next cycle to use provided states instead of stale
     // trajectory
     previousTrajectory_ = bestTrajectory;
+
+    return bestTrajectory;
 }
 
 void FrenetGridSearchPlanner::reset() {

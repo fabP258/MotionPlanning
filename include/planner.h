@@ -55,12 +55,13 @@ class FrenetGridSearchPlanner {
           longLimits_(longLimits) {
     }
 
-    void run(const Common::Path2D &referencePath,
-             const RoadBoundary &leftRoadBoundary,
-             const RoadBoundary &rightRoadBoundary,
-             const Common::FrenetState &latState,
-             const Common::FrenetState &longState,
-             const LongitudinalBehaviour &longBehaviour);
+    std::optional<FrenetTrajectory>
+    run(const Common::Path2D &referencePath,
+        const RoadBoundary &leftRoadBoundary,
+        const RoadBoundary &rightRoadBoundary,
+        const Common::FrenetState &latState,
+        const Common::FrenetState &longState,
+        const LongitudinalBehaviour &longBehaviour);
 
     void reset();
 
