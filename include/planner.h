@@ -4,6 +4,7 @@
 #include "behaviour.h"
 #include "fixed_capacity_buffer.h"
 #include "geometry.h"
+#include "path2d.h"
 #include "polynomial_trajectory.h"
 #include <array>
 #include <optional>
@@ -30,6 +31,10 @@ constexpr std::array<float, N> linspace(float start, float stop) {
     return result;
 }
 
+using RoadBoundary = Common::FixedCapacityBuffer<Common::Point2D, 100>;
+using FrenetRoadBoundary =
+    Common::FixedCapacityBuffer<Common::FrenetPoint, 100>;
+
 struct FrenetTrajectory {
     Common::PolynomialTrajectory latTrajectory;
     Common::PolynomialTrajectory longTrajectory;
@@ -50,7 +55,10 @@ class FrenetGridSearchPlanner {
           longLimits_(longLimits) {
     }
 
-    void run(const Common::FrenetState &latState,
+    void run(const Common::Path2D &referencePath,
+             const RoadBoundary &leftRoadBoundary,
+             const RoadBoundary &rightRoadBoundary,
+             const Common::FrenetState &latState,
              const Common::FrenetState &longState,
              const LongitudinalBehaviour &longBehaviour);
 
@@ -61,6 +69,7 @@ class FrenetGridSearchPlanner {
     CostWeights latCostWeights_;
     FrenetTrajectoryLimits latLimits_;
     FrenetTrajectoryLimits longLimits_;
+    float vehicleHalfWidth_ = 1.25f;
 
     static constexpr float CYCLE_TIME = 0.1f;
 
@@ -93,6 +102,11 @@ class FrenetGridSearchPlanner {
                               const LongitudinalBehaviour &behaviour,
                               const Common::FrenetState &targetState,
                               const float endTime) const;
+
+    bool isTrajectoryWithinRoadBoundaries(
+        const FrenetTrajectory &trajectory,
+        const FrenetRoadBoundary &leftRoadBoundary,
+        const FrenetRoadBoundary &rightRoadBoundary) const;
 };
 
 } // namespace Planner

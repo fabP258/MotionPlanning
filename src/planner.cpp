@@ -7,9 +7,13 @@
 
 namespace Planner {
 
-void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
+void FrenetGridSearchPlanner::run(const Common::Path2D &referencePath,
+                                  const RoadBoundary &leftRoadBoundary,
+                                  const RoadBoundary &rightRoadBoundary,
+                                  const Common::FrenetState &latState,
                                   const Common::FrenetState &longState,
                                   const LongitudinalBehaviour &longBehaviour) {
+    // calculate initial state
     Common::FrenetState latStartState = latState;
     Common::FrenetState longStartState = longState;
     if (previousTrajectory_) {
@@ -23,6 +27,18 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
             longStateFromPrevious) {
             longStartState = longStateFromPrevious.value();
         }
+    }
+
+    // transform road boundary points into frenet frame
+    FrenetRoadBoundary transformedLeftRoadBoundary;
+    for (const Common::Point2D &p : leftRoadBoundary) {
+        transformedLeftRoadBoundary.push_back(
+            referencePath.projectPointIntoFrenet(p));
+    }
+    FrenetRoadBoundary transformedRightRoadBoundary;
+    for (const Common::Point2D &p : rightRoadBoundary) {
+        transformedRightRoadBoundary.push_back(
+            referencePath.projectPointIntoFrenet(p));
     }
 
     // Track best trajectory across all time horizons
@@ -50,7 +66,16 @@ void FrenetGridSearchPlanner::run(const Common::FrenetState &latState,
 
             for (int k = 0; k < longitudinalTrajectories.size(); k++) {
                 // TODO: Add collision checking (static and dynamic)
-                // TODO: Add road boundary checks
+
+                FrenetTrajectory currentTrajectory{
+                    lateralTrajectories[j].value(),
+                    longitudinalTrajectories[k]};
+
+                if (!isTrajectoryWithinRoadBoundaries(
+                        currentTrajectory, transformedLeftRoadBoundary,
+                        transformedRightRoadBoundary)) {
+                    continue;
+                }
 
                 float totalCost = lateralTrajectories[j]->cost() +
                                   longitudinalTrajectories[k].cost();
@@ -179,6 +204,62 @@ bool FrenetGridSearchPlanner::isTrajectoryValid(
     const FrenetTrajectoryLimits &limits) {
     return trajectory.isMaxAccelerationBelowLimit(limits.acceleration) &&
            trajectory.isMaxJerkBelowLimit(limits.jerk);
+}
+
+bool FrenetGridSearchPlanner::isTrajectoryWithinRoadBoundaries(
+    const FrenetTrajectory &trajectory,
+    const FrenetRoadBoundary &leftRoadBoundary,
+    const FrenetRoadBoundary &rightRoadBoundary) const {
+    std::array<float, 100> timeGrid =
+        linspace<100>(0, trajectory.latTrajectory.endTime());
+    // sample trajectory on grid
+    std::array<float, 100> sGrid;
+    std::array<float, 100> dGrid;
+    for (int i = 0; i < 100; ++i) {
+        sGrid[i] = trajectory.longTrajectory.evaluate(timeGrid[i]);
+        dGrid[i] = trajectory.latTrajectory.evaluate(timeGrid[i]);
+    }
+
+    // evaluate left road boundary
+    for (const Common::FrenetPoint &p : leftRoadBoundary) {
+        // search for closest s-match
+        int idx = 0;
+        float minDiff = std::numeric_limits<float>::max();
+        for (int i = 0; i < sGrid.size(); ++i) {
+            float diff = std::abs(p.s - sGrid[i]);
+            if (diff < minDiff) {
+                minDiff = diff;
+                idx = i;
+            }
+        }
+        // TODO: use linear interpolation instead of neirest neighbor
+
+        // check for lateral distance - ignore rotation of the vehicle
+        if (dGrid[idx] >= (p.d - vehicleHalfWidth_)) {
+            return false;
+        }
+    }
+
+    // evaluate right road boundary
+    for (const Common::FrenetPoint &p : rightRoadBoundary) {
+        // search for closest s-match
+        int idx = 0;
+        float minDiff = std::numeric_limits<float>::max();
+        for (int i = 0; i < sGrid.size(); ++i) {
+            float diff = std::abs(p.s - sGrid[i]);
+            if (diff < minDiff) {
+                minDiff = diff;
+                idx = i;
+            }
+        }
+
+        // check for lateral distance - ignore rotation of the vehicle
+        if (dGrid[idx] <= (p.d + vehicleHalfWidth_)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 } // namespace Planner

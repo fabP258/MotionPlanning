@@ -13,6 +13,7 @@ set(SOURCES
     src/linalg.cpp
     src/behaviour.cpp
     src/planner.cpp
+    src/path2d.cpp
     main.cpp
 )
 

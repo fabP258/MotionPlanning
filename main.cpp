@@ -1,4 +1,5 @@
 #include "behaviour.h"
+#include "path2d.h"
 #include "planner.h"
 
 int main() {
@@ -34,7 +35,15 @@ int main() {
     float timeGap = 1.5f;
     Planner::FollowingBehaviour longBehaviour(longLeadState, minGap, timeGap);
 
-    planner.run(latState, longState, longBehaviour);
+    // TODO: create proper reference path
+    Common::Path2D referencePath{Common::Polynom(), Common::Polynom()};
+
+    // TODO: create proper road boundaries
+    Planner::RoadBoundary leftRoadBoundary;
+    Planner::RoadBoundary rightRoadBoundary;
+
+    planner.run(referencePath, leftRoadBoundary, rightRoadBoundary, latState,
+                longState, longBehaviour);
 
     return 0;
 }
