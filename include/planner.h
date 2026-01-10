@@ -8,6 +8,7 @@
 #include "polynomial_trajectory.h"
 #include <array>
 #include <optional>
+#include <vector>
 
 namespace Planner {
 
@@ -61,7 +62,8 @@ class FrenetGridSearchPlanner {
         const RoadBoundary &rightRoadBoundary,
         const Common::FrenetState &latState,
         const Common::FrenetState &longState,
-        const LongitudinalBehaviour &longBehaviour);
+        const LongitudinalBehaviour &longBehaviour,
+        std::vector<FrenetTrajectory> &debugTrajectories);
 
     void reset();
 
@@ -76,12 +78,12 @@ class FrenetGridSearchPlanner {
 
     // Compile-time generated equidistant grids
     static constexpr std::array<float, 11> LATERAL_DISTANCE_GRID =
-        linspace<11>(-0.25f, 0.25f);
+        linspace<11>(-0.5f, 0.5f);
 
-    static constexpr std::array<float, 5> TIME_GRID = linspace<5>(1.0f, 3.0f);
+    static constexpr std::array<float, 5> TIME_GRID = linspace<5>(1.0f, 30.0f);
 
-    std::array<std::optional<Common::PolynomialTrajectory>,
-               LATERAL_DISTANCE_GRID.size()>
+    Common::FixedCapacityBuffer<Common::PolynomialTrajectory,
+                                LATERAL_DISTANCE_GRID.size()>
     sampleLateralTrajectories(const Common::FrenetState &startState,
                               const float endTime) const;
 

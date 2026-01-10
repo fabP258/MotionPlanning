@@ -2,7 +2,6 @@
 #include "behaviour.h"
 #include "geometry.h"
 #include "polynomial_trajectory.h"
-#include <iostream>
 #include <limits>
 
 namespace Planner {
@@ -11,7 +10,8 @@ std::optional<FrenetTrajectory> FrenetGridSearchPlanner::run(
     const Common::Path2D &referencePath, const RoadBoundary &leftRoadBoundary,
     const RoadBoundary &rightRoadBoundary, const Common::FrenetState &latState,
     const Common::FrenetState &longState,
-    const LongitudinalBehaviour &longBehaviour) {
+    const LongitudinalBehaviour &longBehaviour,
+    std::vector<FrenetTrajectory> &debugTrajectories) {
     // calculate initial state
     Common::FrenetState latStartState = latState;
     Common::FrenetState longStartState = longState;
@@ -46,8 +46,8 @@ std::optional<FrenetTrajectory> FrenetGridSearchPlanner::run(
 
     for (int i = 0; i < TIME_GRID.size(); i++) {
         // sample lateral trajectories
-        std::array<std::optional<Common::PolynomialTrajectory>,
-                   LATERAL_DISTANCE_GRID.size()>
+        Common::FixedCapacityBuffer<Common::PolynomialTrajectory,
+                                    LATERAL_DISTANCE_GRID.size()>
             lateralTrajectories =
                 sampleLateralTrajectories(latStartState, TIME_GRID[i]);
 
@@ -60,15 +60,13 @@ std::optional<FrenetTrajectory> FrenetGridSearchPlanner::run(
         // Evaluate cross-wise combinations of lateral and longitudinal
         // trajectories
         for (int j = 0; j < lateralTrajectories.size(); j++) {
-            if (!lateralTrajectories[j])
-                continue;
-
             for (int k = 0; k < longitudinalTrajectories.size(); k++) {
                 // TODO: Add collision checking (static and dynamic)
 
-                FrenetTrajectory currentTrajectory{
-                    lateralTrajectories[j].value(),
-                    longitudinalTrajectories[k]};
+                FrenetTrajectory currentTrajectory{lateralTrajectories[j],
+                                                   longitudinalTrajectories[k]};
+
+                debugTrajectories.push_back(currentTrajectory);
 
                 if (!isTrajectoryWithinRoadBoundaries(
                         currentTrajectory, transformedLeftRoadBoundary,
@@ -76,15 +74,14 @@ std::optional<FrenetTrajectory> FrenetGridSearchPlanner::run(
                     continue;
                 }
 
-                float totalCost = lateralTrajectories[j]->cost() +
+                float totalCost = lateralTrajectories[j].cost() +
                                   longitudinalTrajectories[k].cost();
 
                 // Update best trajectory if this combination has lower cost
                 if (totalCost < minCost) {
                     minCost = totalCost;
-                    bestTrajectory =
-                        FrenetTrajectory{lateralTrajectories[j].value(),
-                                         longitudinalTrajectories[k]};
+                    bestTrajectory = FrenetTrajectory{
+                        lateralTrajectories[j], longitudinalTrajectories[k]};
                 }
             }
         }
@@ -103,25 +100,28 @@ void FrenetGridSearchPlanner::reset() {
     previousTrajectory_.reset();
 }
 
-std::array<std::optional<Common::PolynomialTrajectory>,
-           FrenetGridSearchPlanner::LATERAL_DISTANCE_GRID.size()>
+Common::FixedCapacityBuffer<
+    Common::PolynomialTrajectory,
+    FrenetGridSearchPlanner::LATERAL_DISTANCE_GRID.size()>
 FrenetGridSearchPlanner::sampleLateralTrajectories(
     const Common::FrenetState &startState, const float endTime) const {
-    std::array<std::optional<Common::PolynomialTrajectory>,
-               FrenetGridSearchPlanner::LATERAL_DISTANCE_GRID.size()>
+    Common::FixedCapacityBuffer<
+        Common::PolynomialTrajectory,
+        FrenetGridSearchPlanner::LATERAL_DISTANCE_GRID.size()>
         trajectories;
-    int trajIdx = 0;
     Common::FrenetState endState = {0.0f, 0.0f, 0.0f};
-    for (auto &t : trajectories) {
-        endState.distance = LATERAL_DISTANCE_GRID[trajIdx++];
-        t = Common::PolynomialTrajectory::fromBoundaryStates(startState,
+    for (const float offset : LATERAL_DISTANCE_GRID) {
+        endState.distance = offset;
+        std::optional<Common::PolynomialTrajectory> t =
+            Common::PolynomialTrajectory::fromBoundaryStates(startState,
                                                              endState, endTime);
         if (!t)
             continue;
         t->setCost(calculateLateralCost(t.value(), endTime));
         // invalidate trajectory if it exceeds dynamic limits
-        if (!isTrajectoryValid(t.value(), latLimits_))
-            t.reset();
+        if (isTrajectoryValid(t.value(), latLimits_)) {
+            trajectories.push_back(t.value());
+        }
     }
 
     return trajectories;
@@ -165,7 +165,6 @@ FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
 
 float FrenetGridSearchPlanner::calculateLateralCost(
     const Common::PolynomialTrajectory &latTraj, const float endTime) const {
-
     float jerkCost = latTraj.jerkCost();
     float timeCost = endTime;
 
