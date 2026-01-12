@@ -33,12 +33,25 @@ A C++20 motion planning library using Frenet coordinates and polynomial trajecto
 - CMake 3.10 or higher
 - C++20 compatible compiler (GCC 10+, Clang 10+, MSVC 2019+)
 
+### Optional: Visualization
+
+To enable trajectory visualization, you need Matplot++ installed.
+
 ### Building
 
+**Without visualization (default):**
 ```bash
 mkdir build
 cd build
 cmake ..
+make
+```
+
+**With visualization:**
+```bash
+mkdir build
+cd build
+cmake .. -DENABLE_VISUALIZATION=ON
 make
 ```
 

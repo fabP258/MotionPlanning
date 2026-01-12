@@ -4,6 +4,8 @@ project(MotionPlanning)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(ENABLE_VISUALIZATION "Enable trajectory visualization with Matplot++" OFF)
+
 include_directories(include)
 
 set(SOURCES
@@ -18,3 +20,9 @@ set(SOURCES
 )
 
 add_executable(MotionPlanning ${SOURCES})
+
+if(ENABLE_VISUALIZATION)
+    find_package(Matplot++ REQUIRED)
+    target_link_libraries(MotionPlanning Matplot++::matplot)
+    target_compile_definitions(MotionPlanning PRIVATE HAS_MATPLOTPP)
+endif()
