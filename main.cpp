@@ -1,4 +1,5 @@
 #include "behaviour.h"
+#include "frenet_grid_planner.h"
 #include "path2d.h"
 #include "planner.h"
 
