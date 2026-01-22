@@ -26,9 +26,9 @@ class PolynomialTrajectory {
     // Default constructor - creates zero trajectory
     // Only used internally by FixedCapacityBuffer for uninitialized storage
     PolynomialTrajectory()
-        : polynom_(), startState_{0.0f, 0.0f, 0.0f},
-          endState_{0.0f, 0.0f, 0.0f}, endTime_(0.0f), hasFullEndState_(false),
-          cost_(0.0f) {
+        : polynom_(), startState_{0.0f, 0.0f, 0.0f}, endState_{0.0f, 0.0f,
+                                                               0.0f},
+          endTime_(0.0f), hasFullEndState_(false), cost_(0.0f) {
     }
 
     // Factory methods for creating trajectories
@@ -105,6 +105,14 @@ class PolynomialTrajectory {
         Polynom jerkSquared = jerk.square();
         return jerkSquared.integrateDefinite(0.0f, endTime_);
     }
+
+    // Cost function: integral of squared distance error over [0, endTime]
+    // ∫₀ᵀ (d(t) - reference)² dt - penalizes deviation from reference position
+    float distanceCost(float reference) const;
+
+    // Cost function: integral of squared velocity error over [0, endTime]
+    // ∫₀ᵀ (v(t) - reference)² dt - penalizes deviation from reference velocity
+    float velocityCost(float reference) const;
 };
 
 } // namespace Common

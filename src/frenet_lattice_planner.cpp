@@ -1,13 +1,15 @@
 #include "frenet_lattice_planner.h"
 #include "geometry.h"
 #include "planner.h"
+#include "polynom.h"
 #include <limits>
 
 namespace Planner {
 
 std::optional<FrenetSplineTrajectory<FrenetStateLatticePlanner::T_SZ>>
 FrenetStateLatticePlanner::run(const Common::FrenetState &latState,
-                               const Common::FrenetState &longState) {
+                               const Common::FrenetState &longState,
+                               float referenceVelocity) {
     // Calculate initial state from previous trajectory or use input directly
     Common::FrenetState initialLat = latState;
     Common::FrenetState initialLong = longState;
@@ -24,7 +26,7 @@ FrenetStateLatticePlanner::run(const Common::FrenetState &latState,
     initializeCostTable();
 
     // Expand from continuous root to first lattice layer
-    expandFromRoot(initialLat, initialLong);
+    expandFromRoot(initialLat, initialLong, referenceVelocity);
 
     // Forward Pass (Dynamic Programming)
     for (int t = 0; t < T_SZ - 1; ++t) {
@@ -74,8 +76,8 @@ FrenetStateLatticePlanner::run(const Common::FrenetState &latState,
                                 }
 
                                 // calculate cost
-                                float moveCost =
-                                    calculateCombinedCost(*latTraj, *lonTraj);
+                                float moveCost = calculateCombinedCost(
+                                    *latTraj, *lonTraj, referenceVelocity);
                                 float totalCost =
                                     costTable[t][d][ds][v] + moveCost;
 
@@ -117,7 +119,8 @@ void FrenetStateLatticePlanner::initializeCostTable() {
 }
 
 void FrenetStateLatticePlanner::expandFromRoot(
-    const Common::FrenetState &latState, const Common::FrenetState &longState) {
+    const Common::FrenetState &latState, const Common::FrenetState &longState,
+    const float referenceVelocity) {
     // Time from root (t=0) to first lattice layer
     float dt = TIME_GRID[0];
 
@@ -136,7 +139,8 @@ void FrenetStateLatticePlanner::expandFromRoot(
                     longState, targetLon, dt);
 
                 if (latTraj && lonTraj && isCollisionFree(*latTraj, *lonTraj)) {
-                    float cost = calculateCombinedCost(*latTraj, *lonTraj);
+                    float cost = calculateCombinedCost(*latTraj, *lonTraj,
+                                                       referenceVelocity);
                     costTable[0][d][ds][v] = cost;
                     initialEdgeTable[d][ds][v] =
                         FrenetTrajectory{latTraj.value(), lonTraj.value()};
@@ -188,6 +192,28 @@ FrenetStateLatticePlanner::findBestTerminalNode() const {
     }
 
     return best;
+}
+
+float FrenetStateLatticePlanner::calculateCombinedCost(
+    const Common::PolynomialTrajectory &lat,
+    const Common::PolynomialTrajectory &lon, float referenceVelocity) const {
+    return calculateLateralCost(lat) +
+           calculateLongitudinalCost(lon, referenceVelocity);
+}
+
+float FrenetStateLatticePlanner::calculateLateralCost(
+    const Common::PolynomialTrajectory &trajectory) const {
+    return latCostWeights_.squaredJerkIntegral * trajectory.jerkCost() +
+           latCostWeights_.squaredTargetdeviation *
+               trajectory.distanceCost(0.0f);
+}
+
+float FrenetStateLatticePlanner::calculateLongitudinalCost(
+    const Common::PolynomialTrajectory &trajectory,
+    float referenceVelocity) const {
+    return lonCostWeights_.squaredJerkIntegral * trajectory.jerkCost() +
+           lonCostWeights_.squaredTargetdeviation *
+               trajectory.velocityCost(referenceVelocity);
 }
 
 } // namespace Planner

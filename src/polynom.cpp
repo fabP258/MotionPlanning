@@ -77,8 +77,7 @@ Polynom Polynom::square() const {
     int newDegree = 2 * degree_;
 
     if (newDegree > MAX_DEGREE) {
-        throw std::runtime_error(
-            "Squared polynomial exceeds maximum degree");
+        throw std::runtime_error("Squared polynomial exceeds maximum degree");
     }
 
     std::array<float, MAX_DEGREE + 1> newCoefs{};
@@ -122,6 +121,12 @@ Polynom Polynom::integrate() const {
     }
 
     return Polynom(newCoefs, degree_ + 1);
+}
+
+Polynom Polynom::operator-(float rhs) const {
+    std::array<float, MAX_DEGREE + 1> newCoefs = coefficients_;
+    newCoefs[0] -= rhs;
+    return Polynom(newCoefs, degree_);
 }
 
 } // namespace Common

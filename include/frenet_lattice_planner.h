@@ -1,7 +1,9 @@
 #ifndef FRENET_LATTICE_PLANNER_H_INCLUDED
 #define FRENET_LATTICE_PLANNER_H_INCLUDED
 
+#include "behaviour.h"
 #include "planner.h"
+#include "polynomial_trajectory.h"
 #include <array>
 #include <cmath>
 #include <optional>
@@ -23,6 +25,8 @@ class FrenetStateLatticePlanner {
 
     FrenetTrajectoryLimits latLimits_;
     FrenetTrajectoryLimits longLimits_;
+    CostWeights latCostWeights_;
+    CostWeights lonCostWeights_;
 
     // Planning cycle time for trajectory evaluation
     static constexpr float CYCLE_TIME = 0.1f;
@@ -59,7 +63,8 @@ class FrenetStateLatticePlanner {
     void initializeCostTable();
 
     void expandFromRoot(const Common::FrenetState &latState,
-                        const Common::FrenetState &longState);
+                        const Common::FrenetState &longState,
+                        const float referenceVelocity);
 
     // Dummy helper methods to be implemented
     bool isCollisionFree(const Common::PolynomialTrajectory &lat,
@@ -69,17 +74,15 @@ class FrenetStateLatticePlanner {
     }
 
     float calculateCombinedCost(const Common::PolynomialTrajectory &lat,
-                                const Common::PolynomialTrajectory &lon) {
-        // TODO: rework this function
-        // Weights for the cost function
-        const float w_jerk = 1.0f;
-        const float w_v = 10.0f;
-        const float target_v = 20.0f;
+                                const Common::PolynomialTrajectory &lon,
+                                float referenceVelocity) const;
 
-        float cost = w_jerk * (lat.jerkCost() + lon.jerkCost());
-        cost += w_v * std::pow(lon.endState().velocity - target_v, 2);
-        return cost;
-    }
+    float
+    calculateLateralCost(const Common::PolynomialTrajectory &trajectory) const;
+
+    float
+    calculateLongitudinalCost(const Common::PolynomialTrajectory &trajectory,
+                              float referenceVelocity) const;
 
   public:
     FrenetStateLatticePlanner(const FrenetTrajectoryLimits &latLimits,
@@ -89,7 +92,7 @@ class FrenetStateLatticePlanner {
 
     std::optional<FrenetSplineTrajectory<T_SZ>>
     run(const Common::FrenetState &startLat,
-        const Common::FrenetState &startLong);
+        const Common::FrenetState &startLong, float referenceVelocity);
 
     std::optional<FrenetSplineTrajectory<T_SZ>> reconstructPath() const;
 
