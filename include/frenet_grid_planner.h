@@ -10,11 +10,6 @@ namespace Planner {
 class FrenetGridSearchPlanner {
 
   public:
-    struct FrenetTrajectoryLimits {
-        float acceleration = 2.0f;
-        float jerk = 5.0f;
-    };
-
     FrenetGridSearchPlanner(const CostWeights &latCostWeights,
                             const FrenetTrajectoryLimits &latLimits,
                             const FrenetTrajectoryLimits &longLimits)
@@ -58,10 +53,6 @@ class FrenetGridSearchPlanner {
     sampleLongitudinalTrajectories(const Common::FrenetState &startState,
                                    const LongitudinalBehaviour &behaviour,
                                    const float endTime) const;
-
-    static bool
-    isTrajectoryValid(const Common::PolynomialTrajectory &trajectory,
-                      const FrenetTrajectoryLimits &limits);
 
     float calculateLateralCost(const Common::PolynomialTrajectory &latTraj,
                                const float endTime) const;

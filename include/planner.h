@@ -33,6 +33,15 @@ using RoadBoundary = Common::FixedCapacityBuffer<Common::Point2D, 100>;
 using FrenetRoadBoundary =
     Common::FixedCapacityBuffer<Common::FrenetPoint, 100>;
 
+struct FrenetTrajectoryLimits {
+    float acceleration = 2.0f;
+    float jerk = 5.0f;
+};
+
+bool isTrajectoryWithinDynamicLimits(
+    const Common::PolynomialTrajectory &trajectory,
+    const FrenetTrajectoryLimits &limits);
+
 struct FrenetTrajectory {
     Common::PolynomialTrajectory latTrajectory;
     Common::PolynomialTrajectory longTrajectory;
@@ -53,6 +62,7 @@ template <int N> class FrenetSplineTrajectory {
 
         float prevEndTime = 0.0f;
         for (const FrenetTrajectory &trajectory : trajectorySpline) {
+            // Note: endTime_ is assumed to be relative to knot
             float endTime = prevEndTime + trajectory.latTrajectory.endTime();
             if (t <= endTime) {
                 return trajectory.latTrajectory.evaluateState(t - prevEndTime);

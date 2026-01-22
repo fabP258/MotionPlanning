@@ -119,7 +119,7 @@ FrenetGridSearchPlanner::sampleLateralTrajectories(
             continue;
         t->setCost(calculateLateralCost(t.value(), endTime));
         // invalidate trajectory if it exceeds dynamic limits
-        if (isTrajectoryValid(t.value(), latLimits_)) {
+        if (isTrajectoryWithinDynamicLimits(t.value(), latLimits_)) {
             trajectories.push_back(t.value());
         }
     }
@@ -156,7 +156,7 @@ FrenetGridSearchPlanner::sampleLongitudinalTrajectories(
         traj->setCost(calculateLongitudinalCost(traj.value(), behaviour,
                                                 targetState, endTime));
         // only add trajectory if it is within dynamic limits
-        if (isTrajectoryValid(traj.value(), longLimits_)) {
+        if (isTrajectoryWithinDynamicLimits(traj.value(), longLimits_)) {
             trajectories.push_back(traj.value());
         }
     }
@@ -197,13 +197,6 @@ float FrenetGridSearchPlanner::calculateLongitudinalCost(
     return weights.squaredJerkIntegral * jerkCost +
            weights.maneuverTime * endTime +
            weights.squaredTargetdeviation * squaredTargetDeviation;
-}
-
-bool FrenetGridSearchPlanner::isTrajectoryValid(
-    const Common::PolynomialTrajectory &trajectory,
-    const FrenetTrajectoryLimits &limits) {
-    return trajectory.isMaxAccelerationBelowLimit(limits.acceleration) &&
-           trajectory.isMaxJerkBelowLimit(limits.jerk);
 }
 
 bool FrenetGridSearchPlanner::isTrajectoryWithinRoadBoundaries(

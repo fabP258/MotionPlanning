@@ -2,6 +2,7 @@
 #include "frenet_grid_planner.h"
 #include "path2d.h"
 #include "planner.h"
+#include <iostream>
 
 #ifdef HAS_MATPLOTPP
 #include <matplot/matplot.h>
@@ -13,11 +14,11 @@ int main() {
     latCostWeights.squaredTargetdeviation = 1.0f;
     latCostWeights.maneuverTime = 1.0f;
 
-    Planner::FrenetGridSearchPlanner::FrenetTrajectoryLimits latLimits;
+    Planner::FrenetTrajectoryLimits latLimits;
     latLimits.acceleration = 5.0f;
     latLimits.jerk = 15.0f;
 
-    Planner::FrenetGridSearchPlanner::FrenetTrajectoryLimits longLimits;
+    Planner::FrenetTrajectoryLimits longLimits;
     longLimits.acceleration = 2.0f;
 
     Planner::FrenetGridSearchPlanner planner(latCostWeights, latLimits,
