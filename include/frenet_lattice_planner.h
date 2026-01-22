@@ -21,6 +21,9 @@ class FrenetStateLatticePlanner {
         }
     };
 
+    FrenetTrajectoryLimits latLimits_;
+    FrenetTrajectoryLimits longLimits_;
+
     // Planning cycle time for trajectory evaluation
     static constexpr float CYCLE_TIME = 0.1f;
 
@@ -79,6 +82,11 @@ class FrenetStateLatticePlanner {
     }
 
   public:
+    FrenetStateLatticePlanner(const FrenetTrajectoryLimits &latLimits,
+                              const FrenetTrajectoryLimits &longLimits)
+        : latLimits_(latLimits), longLimits_(longLimits) {
+    }
+
     std::optional<FrenetSplineTrajectory<T_SZ>>
     run(const Common::FrenetState &startLat,
         const Common::FrenetState &startLong);

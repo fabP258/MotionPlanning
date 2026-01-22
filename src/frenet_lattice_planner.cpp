@@ -62,25 +62,33 @@ FrenetStateLatticePlanner::run(const Common::FrenetState &latState,
                                 auto lonTraj = Common::PolynomialTrajectory::
                                     fromBoundaryStates(currLon, targetLon, dt);
 
-                                if (latTraj && lonTraj &&
-                                    isCollisionFree(*latTraj, *lonTraj)) {
-                                    float move_cost = calculateCombinedCost(
-                                        *latTraj, *lonTraj);
-                                    float total_cost =
-                                        costTable[t][d][ds][v] + move_cost;
+                                if (!latTraj || !lonTraj)
+                                    continue;
 
-                                    if (total_cost <
-                                        costTable[t + 1][next_d][next_ds]
-                                                 [next_v]) {
-                                        costTable[t + 1][next_d][next_ds]
-                                                 [next_v] = total_cost;
-                                        parentTable[t + 1][next_d][next_ds]
-                                                   [next_v] = {t, d, ds, v};
-                                        edgeTable[t +
-                                                  1][next_d][next_ds][next_v] =
-                                            FrenetTrajectory{latTraj.value(),
-                                                             lonTraj.value()};
-                                    }
+                                // check dynamic limits
+                                if (!isTrajectoryWithinDynamicLimits(
+                                        latTraj.value(), latLimits_) ||
+                                    !isTrajectoryWithinDynamicLimits(
+                                        lonTraj.value(), longLimits_)) {
+                                    continue;
+                                }
+
+                                // calculate cost
+                                float moveCost =
+                                    calculateCombinedCost(*latTraj, *lonTraj);
+                                float totalCost =
+                                    costTable[t][d][ds][v] + moveCost;
+
+                                if (totalCost < costTable[t + 1][next_d]
+                                                         [next_ds][next_v] &&
+                                    isCollisionFree(*latTraj, *lonTraj)) {
+                                    costTable[t + 1][next_d][next_ds][next_v] =
+                                        totalCost;
+                                    parentTable[t + 1][next_d][next_ds]
+                                               [next_v] = {t, d, ds, v};
+                                    edgeTable[t + 1][next_d][next_ds][next_v] =
+                                        FrenetTrajectory{latTraj.value(),
+                                                         lonTraj.value()};
                                 }
                             }
                         }
