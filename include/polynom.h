@@ -1,6 +1,7 @@
 #ifndef POLYNOM_H_INCLUDED
 #define POLYNOM_H_INCLUDED
 
+#include <algorithm>
 #include <array>
 #include <span>
 #include <stdexcept>
@@ -25,19 +26,11 @@ class Polynom {
     // Construct from std::array (for known degrees at compile time)
     template <std::size_t N>
     explicit Polynom(const std::array<float, N> &coefficients)
-        : degree_(N - 1) {
+        : coefficients_{}, degree_(N - 1) {
         static_assert(N <= MAX_DEGREE + 1,
                       "Polynomial degree exceeds maximum supported degree");
 
-        // Copy coefficients to internal array
-        for (std::size_t i = 0; i < N; ++i) {
-            coefficients_[i] = coefficients[i];
-        }
-
-        // Zero out unused coefficients
-        for (std::size_t i = N; i < MAX_DEGREE + 1; ++i) {
-            coefficients_[i] = 0.0f;
-        }
+        std::copy(coefficients.begin(), coefficients.end(), coefficients_.begin());
     }
 
     // Construct from initializer list for convenience
