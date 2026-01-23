@@ -1,16 +1,15 @@
 #include "polynomial_trajectory.h"
-#include "geometry.h"
+#include "fixed_capacity_buffer.h"
 #include "linalg.h"
 #include <cmath>
 #include <limits>
 
 namespace Common {
 
-PolynomialTrajectory::PolynomialTrajectory(Polynom poly, FrenetState start,
-                                           FrenetState end, float time,
+PolynomialTrajectory::PolynomialTrajectory(Polynom poly, float time,
                                            bool fullEndState)
-    : polynom_(poly), startState_(start), endState_(end), endTime_(time),
-      hasFullEndState_(fullEndState), cost_(std::numeric_limits<float>::max()) {
+    : polynom_(poly), endTime_(time), hasFullEndState_(fullEndState),
+      cost_(std::numeric_limits<float>::max()) {
 }
 
 std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
@@ -57,7 +56,7 @@ std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
 
     // Create polynomial and trajectory
     Polynom poly(coefs);
-    return PolynomialTrajectory(poly, startState, endState, endTime, true);
+    return PolynomialTrajectory(poly, endTime, true);
 }
 
 std::optional<PolynomialTrajectory>
@@ -103,7 +102,7 @@ PolynomialTrajectory::fromStartStateAndEndVelocity(
     endState.velocity = endVelocity;
     endState.accel = endAcceleration;
 
-    return PolynomialTrajectory(poly, startState, endState, endTime, false);
+    return PolynomialTrajectory(poly, endTime, false);
 }
 
 bool PolynomialTrajectory::isInValidRange(float t) const {
@@ -186,7 +185,7 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
     // If jerk.degree() == 0, acceleration is linear, no interior extrema
 
     // Check if absolute acceleration at all critical points is below limit
-    for (const auto& timePoint : checkPoints) {
+    for (const auto &timePoint : checkPoints) {
         float accelValue = accel.evaluate(timePoint);
         if (std::abs(accelValue) > maxAcceleration) {
             return false;
@@ -217,7 +216,7 @@ bool PolynomialTrajectory::isMaxJerkBelowLimit(const float maxJerk) const {
     }
     // If snap.degree() == 0, jerk is linear, no interior extrema
 
-    for (const auto& timePoint : checkPoints) {
+    for (const auto &timePoint : checkPoints) {
         float jerkValue = jerk.evaluate(timePoint);
         if (std::abs(jerkValue) > maxJerk) {
             return false;

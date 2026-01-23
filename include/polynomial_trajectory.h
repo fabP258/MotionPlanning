@@ -1,7 +1,6 @@
 #ifndef POLYNOMIAL_TRAJECTORY_H_INCLUDED
 #define POLYNOMIAL_TRAJECTORY_H_INCLUDED
 
-#include "fixed_capacity_buffer.h"
 #include "geometry.h"
 #include "polynom.h"
 #include <optional>
@@ -11,14 +10,11 @@ namespace Common {
 class PolynomialTrajectory {
   private:
     Polynom polynom_;
-    FrenetState startState_;
-    FrenetState endState_;
     float endTime_;
     bool hasFullEndState_;
     float cost_;
 
-    PolynomialTrajectory(Polynom poly, FrenetState start, FrenetState end,
-                         float time, bool fullEndState);
+    PolynomialTrajectory(Polynom poly, float time, bool fullEndState);
 
     bool isInValidRange(float t) const;
 
@@ -26,9 +22,7 @@ class PolynomialTrajectory {
     // Default constructor - creates zero trajectory
     // Only used internally by FixedCapacityBuffer for uninitialized storage
     PolynomialTrajectory()
-        : polynom_(), startState_{0.0f, 0.0f, 0.0f}, endState_{0.0f, 0.0f,
-                                                               0.0f},
-          endTime_(0.0f), hasFullEndState_(false), cost_(0.0f) {
+        : polynom_(), endTime_(0.0f), hasFullEndState_(false), cost_(0.0f) {
     }
 
     // Factory methods for creating trajectories
@@ -46,12 +40,8 @@ class PolynomialTrajectory {
         return polynom_;
     }
 
-    const FrenetState &startState() const {
-        return startState_;
-    }
-
-    const FrenetState &endState() const {
-        return endState_;
+    FrenetState endState() const {
+        return evaluateState(endTime_).value();
     }
 
     float endTime() const {
