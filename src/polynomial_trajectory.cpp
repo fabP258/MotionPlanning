@@ -227,4 +227,17 @@ bool PolynomialTrajectory::isMaxJerkBelowLimit(const float maxJerk) const {
     return true;
 }
 
+float PolynomialTrajectory::distanceCost(float reference) const {
+    Polynom distanceError = polynom_ - reference;
+    Polynom distanceErrorSquared = distanceError.square();
+    return distanceErrorSquared.integrateDefinite(0.0f, endTime_);
+}
+
+float PolynomialTrajectory::velocityCost(float reference) const {
+    Polynom velocity = polynom_.derivative(1);
+    Polynom velocityError = velocity - reference;
+    Polynom velocityErrorSquared = velocityError.square();
+    return velocityErrorSquared.integrateDefinite(0.0f, endTime_);
+}
+
 } // namespace Common

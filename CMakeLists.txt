@@ -14,8 +14,10 @@ set(SOURCES
     src/geometry.cpp
     src/linalg.cpp
     src/behaviour.cpp
-    src/planner.cpp
+    src/frenet_grid_planner.cpp
+    src/frenet_lattice_planner.cpp
     src/path2d.cpp
+    src/planner.cpp
     main.cpp
 )
 

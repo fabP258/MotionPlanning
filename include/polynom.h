@@ -72,6 +72,9 @@ class Polynom {
 
     // Returns antiderivative polynomial (indefinite integral)
     Polynom integrate() const;
+
+    // Subtract scalar
+    Polynom operator-(float rhs) const;
 };
 
 } // namespace Common
