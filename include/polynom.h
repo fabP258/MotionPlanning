@@ -3,71 +3,121 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <span>
 #include <stdexcept>
 
 namespace Common {
 
-class Polynom {
+template <size_t DEGREE> class Polynom {
   private:
-    static constexpr int MAX_DEGREE = 5;
-    std::array<float, MAX_DEGREE + 1> coefficients_;
-    int degree_;
+    std::array<float, DEGREE + 1> coefficients_;
 
-    Polynom(const std::array<float, MAX_DEGREE + 1> &coefficients, int degree)
-        : coefficients_(coefficients), degree_(degree) {
+    Polynom(const std::array<float, DEGREE + 1> &coefficients)
+        : coefficients_(coefficients) {
     }
 
   public:
     // Default constructor - creates zero polynomial
-    Polynom() : coefficients_{}, degree_(0) {
+    Polynom() : coefficients_{} {
     }
-
-    // Construct from std::array (for known degrees at compile time)
-    template <std::size_t N>
-    explicit Polynom(const std::array<float, N> &coefficients)
-        : coefficients_{}, degree_(N - 1) {
-        static_assert(N <= MAX_DEGREE + 1,
-                      "Polynomial degree exceeds maximum supported degree");
-        std::copy(coefficients.begin(), coefficients.end(),
-                  coefficients_.begin());
-    }
-
-    // Construct from initializer list for convenience
-    explicit Polynom(std::initializer_list<float> coefficients);
 
     int degree() const {
-        return degree_;
+        return DEGREE;
     }
 
-    // Returns view of active coefficients only
-    std::span<const float> coefficients() const {
-        return std::span<const float>(coefficients_.data(), degree_ + 1);
+    const std::array<float, DEGREE + 1> &coefficients() const {
+        return coefficients_;
     }
 
-    float evaluate(float x) const;
+    float evaluate(float x) const {
+        float result = 0.0f;
+        float xp = 1.0f; // x⁰
+
+        for (size_t i = 0; i <= DEGREE; ++i) {
+            result += coefficients_[i] * xp;
+            xp *= x;
+        }
+
+        return result;
+    }
 
     float operator()(float x) const {
         return evaluate(x);
     }
 
     // Returns derivative polynomial (degree n-1)
-    Polynom derivative() const;
+    Polynom derivative() const {
+        if (DEGREE == 0) {
+            // Derivative of constant is zero
+            return Polynom<0>(std::array<float, 1>{});
+        }
+
+        std::array<float, DEGREE> derivCoefs{};
+        for (size_t i = 0; i < DEGREE; ++i) {
+            derivCoefs[i] = coefficients_[i + 1] * (i + 1);
+        }
+
+        return Polynom(derivCoefs);
+    }
 
     // Returns nth order derivative
-    Polynom derivative(int order) const;
+    Polynom derivative(size_t order) const {
+        Polynom result = *this;
+        for (size_t i = 0; i < order; ++i) {
+            result = result.derivative();
+        }
+        return result;
+    }
 
     // Returns squared polynomial: p(x)² = p(x) * p(x)
-    Polynom square() const;
+    Polynom square() const {
+        std::array<float, DEGREE * 2> newCoefs{};
+        // Multiply: (a₀ + a₁x + a₂x² + ...) × (a₀ + a₁x + a₂x² + ...)
+        // Result coefficient for x^k is sum of aᵢ*aⱼ where i+j=k
+        for (size_t i = 0; i <= DEGREE; ++i) {
+            for (size_t j = 0; j <= DEGREE; ++j) {
+                newCoefs[i + j] += coefficients_[i] * coefficients_[j];
+            }
+        }
+
+        return Polynom(newCoefs);
+    }
 
     // Returns definite integral over [a, b]: ∫ₐᵇ p(x) dx
-    float integrateDefinite(float a, float b) const;
+    float integrateDefinite(float a, float b) const {
+        float result = 0.0f;
+
+        // For each term aᵢxⁱ, integral is aᵢ/(i+1) × x^(i+1)
+        // Definite integral: [aᵢ/(i+1) × b^(i+1)] - [aᵢ/(i+1) × a^(i+1)]
+        for (size_t i = 0; i <= DEGREE; ++i) {
+            float coef = coefficients_[i] / (i + 1);
+            result += coef * (std::pow(b, i + 1) - std::pow(a, i + 1));
+        }
+
+        return result;
+    }
 
     // Returns antiderivative polynomial (indefinite integral)
-    Polynom integrate() const;
+    Polynom integrate() const {
+        const size_t newDegree = DEGREE + 1;
+        std::array<float, newDegree + 1> newCoefs{};
+
+        // ∫ aᵢxⁱ dx = aᵢ/(i+1) × x^(i+1) + C
+        // Integration constant C is stored in newCoefs[0] (defaults to 0)
+        for (size_t i = 0; i <= DEGREE; ++i) {
+            newCoefs[i + 1] = coefficients_[i] / (i + 1);
+        }
+
+        return Polynom(newCoefs);
+    }
 
     // Subtract scalar
-    Polynom operator-(float rhs) const;
+    Polynom operator-(float rhs) const {
+        std::array<float, DEGREE + 1> newCoefs = coefficients_;
+        newCoefs[0] -= rhs;
+        return Polynom(newCoefs);
+    }
 };
 
 } // namespace Common
