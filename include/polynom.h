@@ -29,8 +29,8 @@ class Polynom {
         : coefficients_{}, degree_(N - 1) {
         static_assert(N <= MAX_DEGREE + 1,
                       "Polynomial degree exceeds maximum supported degree");
-
-        std::copy(coefficients.begin(), coefficients.end(), coefficients_.begin());
+        std::copy(coefficients.begin(), coefficients.end(),
+                  coefficients_.begin());
     }
 
     // Construct from initializer list for convenience
