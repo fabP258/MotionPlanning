@@ -9,19 +9,18 @@
 namespace Common {
 class Path2D {
   private:
-    static constexpr int POLYNOM_DEGREE = 3;
-    Polynom poly_x;
-    Polynom poly_y;
+    static constexpr size_t POLYNOM_DEGREE = 3;
+    using PathPolynom = Polynom<POLYNOM_DEGREE>;
+
+    PathPolynom poly_x;
+    PathPolynom poly_y;
 
     std::vector<float>
     calculateArcLength(const std::vector<Point2D> &points) const;
 
   public:
-    Path2D(const Polynom &px, const Polynom &py) : poly_x(px), poly_y(py) {
-        // Verify that polynomials are degree 3
-        if (px.degree() != POLYNOM_DEGREE || py.degree() != POLYNOM_DEGREE) {
-            throw std::invalid_argument("Path2D requires degree-3 polynomials");
-        }
+    Path2D(const PathPolynom &px, const PathPolynom &py)
+        : poly_x(px), poly_y(py) {
     }
 
     template <int N>

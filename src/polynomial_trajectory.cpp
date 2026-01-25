@@ -6,7 +6,7 @@
 
 namespace Common {
 
-PolynomialTrajectory::PolynomialTrajectory(Polynom poly, float time,
+PolynomialTrajectory::PolynomialTrajectory(TrajectoryPolynom poly, float time,
                                            bool fullEndState)
     : polynom_(poly), endTime_(time), hasFullEndState_(fullEndState),
       cost_(std::numeric_limits<float>::max()) {
@@ -55,7 +55,7 @@ std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
     coefs[5] = highCoefs[2];
 
     // Create polynomial and trajectory
-    Polynom poly(coefs);
+    TrajectoryPolynom poly(coefs);
     return PolynomialTrajectory(poly, endTime, true);
 }
 
@@ -94,7 +94,7 @@ PolynomialTrajectory::fromStartStateAndEndVelocity(
     coefs[4] = highCoefs[1];
 
     // Create polynomial and trajectory
-    Polynom poly(coefs);
+    TrajectoryPolynom poly(coefs);
 
     // Create end state for storage (position will be computed from polynomial)
     FrenetState endState;
@@ -128,10 +128,10 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
     const float maxAcceleration) const {
 
     // Get acceleration polynomial (2nd derivative)
-    Polynom accel = polynom_.derivative(2);
+    auto accel = polynom_.derivative<2>();
 
     // Get jerk polynomial (3rd derivative) to find critical points
-    Polynom jerk = polynom_.derivative(3);
+    auto jerk = polynom_.derivative<3>();
 
     // Collect all time points where we need to check acceleration
     // Max 4 points: 2 boundaries + 2 quadratic roots
@@ -196,8 +196,8 @@ bool PolynomialTrajectory::isMaxAccelerationBelowLimit(
 }
 
 bool PolynomialTrajectory::isMaxJerkBelowLimit(const float maxJerk) const {
-    Polynom jerk = polynom_.derivative(3);
-    Polynom snap = jerk.derivative();
+    auto jerk = polynom_.derivative<3>();
+    auto snap = jerk.derivative();
 
     FixedCapacityBuffer<float, 3> checkPoints;
 
@@ -233,9 +233,9 @@ float PolynomialTrajectory::distanceCost(float reference) const {
 }
 
 float PolynomialTrajectory::velocityCost(float reference) const {
-    Polynom velocity = polynom_.derivative(1);
-    Polynom velocityError = velocity - reference;
-    Polynom velocityErrorSquared = velocityError.square();
+    auto velocity = polynom_.derivative<1>();
+    auto velocityError = velocity - reference;
+    auto velocityErrorSquared = velocityError.square();
     return velocityErrorSquared.integrateDefinite(0.0f, endTime_);
 }
 

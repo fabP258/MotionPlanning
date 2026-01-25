@@ -45,8 +45,8 @@ int main() {
     // TODO: create proper reference path
     std::array<float, 4> xPoly = {0.0f, 1.0f, 0.0f, 0.0f};
     std::array<float, 4> yPoly = {0.2f, 0.0f, 0.0f, 0.0f};
-    Common::Path2D referencePath{Common::Polynom(xPoly),
-                                 Common::Polynom(yPoly)};
+    Common::Path2D referencePath{Common::Polynom<3>(xPoly),
+                                 Common::Polynom<3>(yPoly)};
 
     // TODO: create proper road boundaries
     Planner::RoadBoundary leftRoadBoundary;

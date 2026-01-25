@@ -13,13 +13,14 @@ template <size_t DEGREE> class Polynom {
   private:
     std::array<float, DEGREE + 1> coefficients_;
 
-    Polynom(const std::array<float, DEGREE + 1> &coefficients)
-        : coefficients_(coefficients) {
+  public:
+    Polynom() : coefficients_{} {
     }
 
-  public:
-    // Default constructor - creates zero polynomial
-    Polynom() : coefficients_{} {
+    // Constructor taking a coefficient array
+    // Can be called with initializer list
+    Polynom(const std::array<float, DEGREE + 1> &coefficients)
+        : coefficients_(coefficients) {
     }
 
     int degree() const {
@@ -46,33 +47,25 @@ template <size_t DEGREE> class Polynom {
         return evaluate(x);
     }
 
-    // Returns derivative polynomial (degree n-1)
-    Polynom derivative() const {
-        if (DEGREE == 0) {
-            // Derivative of constant is zero
-            return Polynom<0>(std::array<float, 1>{});
+    // Returns Nth order derivative polynomial (default: first derivative)
+    template <size_t N = 1>
+    auto derivative() const {
+        if constexpr (N == 0) {
+            return *this;
+        } else if constexpr (DEGREE == 0) {
+            return Polynom<0>{};
+        } else {
+            std::array<float, DEGREE> derivCoefs{};
+            for (size_t i = 0; i < DEGREE; ++i) {
+                derivCoefs[i] = coefficients_[i + 1] * (i + 1);
+            }
+            return Polynom<DEGREE - 1>(derivCoefs).template derivative<N - 1>();
         }
-
-        std::array<float, DEGREE> derivCoefs{};
-        for (size_t i = 0; i < DEGREE; ++i) {
-            derivCoefs[i] = coefficients_[i + 1] * (i + 1);
-        }
-
-        return Polynom(derivCoefs);
-    }
-
-    // Returns nth order derivative
-    Polynom derivative(size_t order) const {
-        Polynom result = *this;
-        for (size_t i = 0; i < order; ++i) {
-            result = result.derivative();
-        }
-        return result;
     }
 
     // Returns squared polynomial: p(x)² = p(x) * p(x)
-    Polynom square() const {
-        std::array<float, DEGREE * 2> newCoefs{};
+    Polynom<DEGREE * 2> square() const {
+        std::array<float, DEGREE * 2 + 1> newCoefs{};
         // Multiply: (a₀ + a₁x + a₂x² + ...) × (a₀ + a₁x + a₂x² + ...)
         // Result coefficient for x^k is sum of aᵢ*aⱼ where i+j=k
         for (size_t i = 0; i <= DEGREE; ++i) {
@@ -81,7 +74,7 @@ template <size_t DEGREE> class Polynom {
             }
         }
 
-        return Polynom(newCoefs);
+        return Polynom<DEGREE * 2>(newCoefs);
     }
 
     // Returns definite integral over [a, b]: ∫ₐᵇ p(x) dx
@@ -99,9 +92,8 @@ template <size_t DEGREE> class Polynom {
     }
 
     // Returns antiderivative polynomial (indefinite integral)
-    Polynom integrate() const {
-        const size_t newDegree = DEGREE + 1;
-        std::array<float, newDegree + 1> newCoefs{};
+    Polynom<DEGREE + 1> integrate() const {
+        std::array<float, DEGREE + 2> newCoefs{};
 
         // ∫ aᵢxⁱ dx = aᵢ/(i+1) × x^(i+1) + C
         // Integration constant C is stored in newCoefs[0] (defaults to 0)
@@ -109,7 +101,7 @@ template <size_t DEGREE> class Polynom {
             newCoefs[i + 1] = coefficients_[i] / (i + 1);
         }
 
-        return Polynom(newCoefs);
+        return Polynom<DEGREE + 1>(newCoefs);
     }
 
     // Subtract scalar

@@ -1,6 +1,6 @@
 #include "polynomial_trajectory.h"
-#include <gtest/gtest.h>
 #include <cmath>
+#include <gtest/gtest.h>
 
 using Common::FrenetState;
 using Common::PolynomialTrajectory;
@@ -91,8 +91,8 @@ TEST(PolynomialTrajectoryFromBoundaryStates, StationaryTrajectory) {
 TEST(PolynomialTrajectoryFromEndVelocity, CreatesValidTrajectory) {
     FrenetState start = makeState(0.0f, 10.0f, 0.0f);
 
-    auto traj = PolynomialTrajectory::fromStartStateAndEndVelocity(
-        start, 20.0f, 0.0f, 3.0f);
+    auto traj = PolynomialTrajectory::fromStartStateAndEndVelocity(start, 20.0f,
+                                                                   0.0f, 3.0f);
 
     ASSERT_TRUE(traj.has_value());
     EXPECT_FLOAT_EQ(traj->endTime(), 3.0f);
@@ -102,8 +102,8 @@ TEST(PolynomialTrajectoryFromEndVelocity, CreatesValidTrajectory) {
 TEST(PolynomialTrajectoryFromEndVelocity, MatchesStartState) {
     FrenetState start = makeState(10.0f, 5.0f, 2.0f);
 
-    auto traj = PolynomialTrajectory::fromStartStateAndEndVelocity(
-        start, 15.0f, 0.0f, 2.0f);
+    auto traj = PolynomialTrajectory::fromStartStateAndEndVelocity(start, 15.0f,
+                                                                   0.0f, 2.0f);
     ASSERT_TRUE(traj.has_value());
 
     auto evalStart = traj->evaluateState(0.0f);
@@ -131,8 +131,8 @@ TEST(PolynomialTrajectoryFromEndVelocity, MatchesEndVelocityAndAcceleration) {
 TEST(PolynomialTrajectoryFromEndVelocity, ZeroEndTimeReturnsNullopt) {
     FrenetState start = makeState(0.0f, 10.0f, 0.0f);
 
-    auto traj = PolynomialTrajectory::fromStartStateAndEndVelocity(
-        start, 20.0f, 0.0f, 0.0f);
+    auto traj = PolynomialTrajectory::fromStartStateAndEndVelocity(start, 20.0f,
+                                                                   0.0f, 0.0f);
 
     EXPECT_FALSE(traj.has_value());
 }
@@ -217,7 +217,7 @@ TEST(PolynomialTrajectoryDerivatives, JerkIsThirdDerivative) {
 
     // Jerk should match polynomial's 3rd derivative
     float jerkAtStart = traj->jerk(0.0f);
-    float jerkFromPolynom = traj->polynom().derivative(3).evaluate(0.0f);
+    float jerkFromPolynom = traj->polynom().derivative<3>().evaluate(0.0f);
     EXPECT_FLOAT_EQ(jerkAtStart, jerkFromPolynom);
 }
 
@@ -270,7 +270,7 @@ TEST(PolynomialTrajectoryLimits, JerkExceedsLimit) {
 }
 
 TEST(PolynomialTrajectoryLimits, ChecksBoundaryPoints) {
-    FrenetState start = makeState(0.0f, 0.0f, 5.0f);  // High initial accel
+    FrenetState start = makeState(0.0f, 0.0f, 5.0f); // High initial accel
     FrenetState end = makeState(10.0f, 0.0f, 0.0f);
 
     auto traj = PolynomialTrajectory::fromBoundaryStates(start, end, 2.0f);
@@ -318,39 +318,15 @@ TEST(PolynomialTrajectoryCost, AggressiveTrajectoryHasHighJerkCost) {
     float shortTime = 1.0f;
     float longTime = 10.0f;
 
-    auto shortTraj = PolynomialTrajectory::fromBoundaryStates(start, end, shortTime);
-    auto longTraj = PolynomialTrajectory::fromBoundaryStates(start, end, longTime);
+    auto shortTraj =
+        PolynomialTrajectory::fromBoundaryStates(start, end, shortTime);
+    auto longTraj =
+        PolynomialTrajectory::fromBoundaryStates(start, end, longTime);
     ASSERT_TRUE(shortTraj.has_value());
     ASSERT_TRUE(longTraj.has_value());
 
     // Shorter duration requires more aggressive maneuver = higher jerk cost
     EXPECT_GT(shortTraj->jerkCost(), longTraj->jerkCost());
-}
-
-// Note: distanceCost and velocityCost require squaring polynomials.
-// For degree-5 trajectories (from boundary states), squaring exceeds MAX_DEGREE=5.
-// These tests verify the expected behavior with high-degree polynomials.
-
-TEST(PolynomialTrajectoryCost, DistanceCostThrowsForHighDegree) {
-    FrenetState start = makeState(0.0f, 0.0f, 0.0f);
-    FrenetState end = makeState(10.0f, 0.0f, 0.0f);
-
-    auto traj = PolynomialTrajectory::fromBoundaryStates(start, end, 2.0f);
-    ASSERT_TRUE(traj.has_value());
-
-    // Degree-5 polynomial squared = degree-10, exceeds MAX_DEGREE
-    EXPECT_THROW(traj->distanceCost(5.0f), std::runtime_error);
-}
-
-TEST(PolynomialTrajectoryCost, VelocityCostThrowsForHighDegree) {
-    FrenetState start = makeState(0.0f, 10.0f, 0.0f);
-    FrenetState end = makeState(100.0f, 10.0f, 0.0f);
-
-    auto traj = PolynomialTrajectory::fromBoundaryStates(start, end, 10.0f);
-    ASSERT_TRUE(traj.has_value());
-
-    // Velocity is degree-4, squared = degree-8, exceeds MAX_DEGREE
-    EXPECT_THROW(traj->velocityCost(10.0f), std::runtime_error);
 }
 
 // ============================================================================

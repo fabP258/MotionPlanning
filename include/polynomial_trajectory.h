@@ -8,17 +8,9 @@
 namespace Common {
 
 class PolynomialTrajectory {
-  private:
-    Polynom polynom_;
-    float endTime_;
-    bool hasFullEndState_;
-    float cost_;
-
-    PolynomialTrajectory(Polynom poly, float time, bool fullEndState);
-
-    bool isInValidRange(float t) const;
-
   public:
+    using TrajectoryPolynom = Polynom<5>;
+
     // Default constructor - creates zero trajectory
     // Only used internally by FixedCapacityBuffer for uninitialized storage
     PolynomialTrajectory()
@@ -36,7 +28,7 @@ class PolynomialTrajectory {
                                  float endTime);
 
     // Accessors
-    const Polynom &polynom() const {
+    const TrajectoryPolynom &polynom() const {
         return polynom_;
     }
 
@@ -73,15 +65,15 @@ class PolynomialTrajectory {
 
     // Trajectory-specific queries
     float velocity(float t) const {
-        return polynom_.derivative(1).evaluate(t);
+        return polynom_.derivative<1>().evaluate(t);
     }
 
     float acceleration(float t) const {
-        return polynom_.derivative(2).evaluate(t);
+        return polynom_.derivative<2>().evaluate(t);
     }
 
     float jerk(float t) const {
-        return polynom_.derivative(3).evaluate(t);
+        return polynom_.derivative<3>().evaluate(t);
     }
 
     bool isMaxAccelerationBelowLimit(const float maxAcceleration) const;
@@ -91,8 +83,8 @@ class PolynomialTrajectory {
     // Cost function: integral of squared jerk over [0, endTime]
     // ∫₀ᵀ j(t)² dt - measures smoothness/comfort of trajectory
     float jerkCost() const {
-        Polynom jerk = polynom_.derivative(3);
-        Polynom jerkSquared = jerk.square();
+        auto jerk = polynom_.derivative<3>();
+        auto jerkSquared = jerk.square();
         return jerkSquared.integrateDefinite(0.0f, endTime_);
     }
 
@@ -103,6 +95,16 @@ class PolynomialTrajectory {
     // Cost function: integral of squared velocity error over [0, endTime]
     // ∫₀ᵀ (v(t) - reference)² dt - penalizes deviation from reference velocity
     float velocityCost(float reference) const;
+
+  private:
+    TrajectoryPolynom polynom_;
+    float endTime_;
+    bool hasFullEndState_;
+    float cost_;
+
+    PolynomialTrajectory(TrajectoryPolynom poly, float time, bool fullEndState);
+
+    bool isInValidRange(float t) const;
 };
 
 } // namespace Common

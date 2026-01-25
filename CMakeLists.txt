@@ -8,7 +8,6 @@ option(ENABLE_VISUALIZATION "Enable trajectory visualization with Matplot++" OFF
 
 # Core library with all source files
 set(LIB_SOURCES
-    src/polynom.cpp
     src/polynomial_trajectory.cpp
     src/geometry.cpp
     src/linalg.cpp
