@@ -2,6 +2,8 @@
 #include "geometry.h"
 #include "planner.h"
 #include "polynom.h"
+#include "polynomial_spline_trajectory.h"
+#include "polynomial_trajectory.h"
 #include <limits>
 
 namespace Planner {
@@ -15,8 +17,10 @@ FrenetStateLatticePlanner::run(const Common::FrenetState &latState,
     Common::FrenetState initialLong = longState;
 
     if (previousTrajectory_) {
-        auto evalLat = previousTrajectory_->evaluateLatState(CYCLE_TIME);
-        auto evalLong = previousTrajectory_->evaluateLongState(CYCLE_TIME);
+        auto evalLat =
+            previousTrajectory_->latTrajectorySpline.evaluateState(CYCLE_TIME);
+        auto evalLong =
+            previousTrajectory_->longTrajectorySpline.evaluateState(CYCLE_TIME);
         if (evalLat && evalLong) {
             initialLat = *evalLat;
             initialLong = *evalLong;
@@ -158,21 +162,28 @@ FrenetStateLatticePlanner::reconstructPath() const {
         return std::nullopt;
     }
 
-    std::array<FrenetTrajectory, T_SZ> spline;
+    std::array<Common::PolynomialTrajectory, T_SZ> latSpline;
+    std::array<Common::PolynomialTrajectory, T_SZ> longSpline;
     Node current = *bestNode;
 
     // Backtrack through lattice layers (t_idx > 0)
     while (current.t_idx > 0) {
-        spline[current.t_idx] = *edgeTable[current.t_idx][current.d_idx]
-                                          [current.ds_idx][current.v_idx];
+        const FrenetTrajectory &currentEdge =
+            *edgeTable[current.t_idx][current.d_idx][current.ds_idx]
+                      [current.v_idx];
+        latSpline[current.t_idx] = currentEdge.latTrajectory;
+        longSpline[current.t_idx] = currentEdge.longTrajectory;
         current = parentTable[current.t_idx][current.d_idx][current.ds_idx]
                              [current.v_idx];
     }
 
     // Add initial edge from continuous root to first lattice layer
-    spline[0] = *initialEdgeTable[current.d_idx][current.ds_idx][current.v_idx];
+    const FrenetTrajectory &initialEdge =
+        *initialEdgeTable[current.d_idx][current.ds_idx][current.v_idx];
+    latSpline[0] = initialEdge.latTrajectory;
+    longSpline[0] = initialEdge.longTrajectory;
 
-    return spline;
+    return FrenetSplineTrajectory<T_SZ>{latSpline, longSpline};
 }
 
 std::optional<FrenetStateLatticePlanner::Node>

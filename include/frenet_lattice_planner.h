@@ -2,8 +2,9 @@
 #define FRENET_LATTICE_PLANNER_H_INCLUDED
 
 #include "behaviour.h"
+#include "linspace.h"
 #include "planner.h"
-#include "polynomial_trajectory.h"
+#include "polynomial_spline_trajectory.h"
 #include <array>
 #include <cmath>
 #include <optional>

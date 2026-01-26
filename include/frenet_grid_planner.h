@@ -2,6 +2,7 @@
 #define FRENET_GRID_PLANNER_H_INCLUDED
 
 #include "behaviour.h"
+#include "linspace.h"
 #include "planner.h"
 #include <vector>
 
