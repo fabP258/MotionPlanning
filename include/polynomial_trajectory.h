@@ -9,12 +9,15 @@ namespace Common {
 
 class PolynomialTrajectory {
   public:
-    using TrajectoryPolynom = Polynom<5>;
+    using PolynomDeg5 = Polynom<5>;
 
-    // Default constructor - creates zero trajectory
-    // Only used internally by FixedCapacityBuffer for uninitialized storage
     PolynomialTrajectory()
         : polynom_(), endTime_(0.0f), hasFullEndState_(false), cost_(0.0f) {
+    }
+
+    PolynomialTrajectory(PolynomDeg5 poly, float time, bool fullEndState)
+        : polynom_(poly), endTime_(time), hasFullEndState_(fullEndState),
+          cost_(std::numeric_limits<float>::max()) {
     }
 
     // Factory methods for creating trajectories
@@ -28,7 +31,7 @@ class PolynomialTrajectory {
                                  float endTime);
 
     // Accessors
-    const TrajectoryPolynom &polynom() const {
+    const PolynomDeg5 &polynom() const {
         return polynom_;
     }
 
@@ -97,12 +100,10 @@ class PolynomialTrajectory {
     float velocityCost(float reference) const;
 
   private:
-    TrajectoryPolynom polynom_;
+    PolynomDeg5 polynom_;
     float endTime_;
     bool hasFullEndState_;
     float cost_;
-
-    PolynomialTrajectory(TrajectoryPolynom poly, float time, bool fullEndState);
 
     bool isInValidRange(float t) const;
 };

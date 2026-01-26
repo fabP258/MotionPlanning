@@ -2,15 +2,8 @@
 #include "fixed_capacity_buffer.h"
 #include "linalg.h"
 #include <cmath>
-#include <limits>
 
 namespace Common {
-
-PolynomialTrajectory::PolynomialTrajectory(TrajectoryPolynom poly, float time,
-                                           bool fullEndState)
-    : polynom_(poly), endTime_(time), hasFullEndState_(fullEndState),
-      cost_(std::numeric_limits<float>::max()) {
-}
 
 std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
     const FrenetState &startState, const FrenetState &endState, float endTime) {
@@ -55,7 +48,7 @@ std::optional<PolynomialTrajectory> PolynomialTrajectory::fromBoundaryStates(
     coefs[5] = highCoefs[2];
 
     // Create polynomial and trajectory
-    TrajectoryPolynom poly(coefs);
+    PolynomDeg5 poly(coefs);
     return PolynomialTrajectory(poly, endTime, true);
 }
 
@@ -94,7 +87,7 @@ PolynomialTrajectory::fromStartStateAndEndVelocity(
     coefs[4] = highCoefs[1];
 
     // Create polynomial and trajectory
-    TrajectoryPolynom poly(coefs);
+    PolynomDeg5 poly(coefs);
 
     // Create end state for storage (position will be computed from polynomial)
     FrenetState endState;

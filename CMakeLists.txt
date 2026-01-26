@@ -41,6 +41,7 @@ if(BUILD_TESTS)
     set(TEST_SOURCES
         test/test_polynom.cpp
         test/test_polynomial_trajectory.cpp
+        test/test_polynomial_spline_trajectory.cpp
     )
 
     add_executable(unit_tests ${TEST_SOURCES})
